@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Crear invitación · CoroLink</title>
+  <script>try{var m=localStorage.getItem("corolink.theme");if(m)document.documentElement.dataset.theme=m}catch(e){}</script>
   <meta name="theme-color" content="#16131f">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -78,7 +79,10 @@
         <!-- CONTENIDO -->
         <section class="tab" id="tab-contenido">
           <details open data-group="evento"><summary>Evento</summary>
-            <label class="f">Tipo de evento<select data-bind="ev.type" id="ev-type"></select></label>
+            <div class="row2">
+              <label class="f">Tipo de evento<select data-bind="ev.type" id="ev-type"></select></label>
+              <label class="f">Idioma de la invitación<select data-bind="lang" data-noi18n><option value="es">Español</option><option value="en">English</option></select></label>
+            </div>
             <label class="f">Frase de arriba<input data-bind="ev.pre" placeholder="Nos casamos"></label>
             <label class="f">Nombres / título<input data-bind="ev.names" placeholder="Ana & Luis"></label>
             <div class="row2">
@@ -134,7 +138,7 @@
 
         <!-- SECCIONES -->
         <section class="tab" id="tab-secciones">
-          <p class="hint">Prende o apaga lo que aparece en la invitación.</p>
+          <p class="hint">Arrastra para ordenar las secciones. Prende o apaga lo que aparece en la invitación.</p>
           <div class="toggles" id="toggles"></div>
         </section>
 

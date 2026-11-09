@@ -2,9 +2,18 @@ import { TEMPLATES, FONTS, fontsHref, newInvitation, applyTheme, sanitizeTheme }
 import { encodeData, buildHash } from './codec.js';
 import { esc, parseDate, fmtDate } from './render.js';
 import { tplCard, filterChips, filterTemplates } from './ui.js';
+import { startI18n, t as tr, lang } from './i18n.js';
+import { mountChrome, loadStars, REPO, ISSUE_BUG, ISSUE_IDEA } from './chrome.js';
 import { listDrafts, deleteDraft, getDraft, listMyTemplates, deleteMyTemplate, listFavs, toggleFav, duplicateDraft, templateFromInvitation } from './store.js';
 
 const $ = (s) => document.querySelector(s);
+
+startI18n();
+mountChrome($('#nav-actions'), { feedback: false });
+$('#foot-star').href = REPO;
+$('#foot-bug').href = ISSUE_BUG;
+$('#foot-idea').href = ISSUE_IDEA;
+loadStars();
 
 const fonts = document.createElement('link');
 fonts.rel = 'stylesheet';
@@ -14,7 +23,7 @@ document.head.appendChild(fonts);
 let toastT;
 function toast(msg) {
   const t = $('#toast');
-  t.textContent = msg;
+  t.textContent = tr(msg);
   t.classList.add('on');
   clearTimeout(toastT);
   toastT = setTimeout(() => t.classList.remove('on'), 2400);
@@ -41,7 +50,7 @@ $('#tpl-grid').addEventListener('click', (e) => {
   if (!fav && !del) return;
   e.preventDefault(); // las tarjetas son links: que la estrella no abra el editor
   if (fav) toast(toggleFav(fav.dataset.fav) ? 'Agregada a favoritas ★' : 'Quitada de favoritas');
-  if (del && confirm('¿Borrar esta plantilla?')) deleteMyTemplate(del.dataset.del);
+  if (del && confirm(tr('¿Borrar esta plantilla?'))) deleteMyTemplate(del.dataset.del);
   renderTemplates();
 });
 renderTemplates();
@@ -56,7 +65,7 @@ function renderDrafts() {
     return `<div class="draft">
       <div class="draft-top">
         <div class="sw" style="background:linear-gradient(135deg, ${th.primary}, ${th.accent})"></div>
-        <div class="info"><b>${esc(d.inv.ev?.names || 'Sin título')}</b><small>${dt ? esc(fmtDate(dt)) : ''} · ${d.guests?.length || 0} invitados</small></div>
+        <div class="info"><b>${esc(d.inv.ev?.names || 'Sin título')}</b><small>${dt ? esc(fmtDate(dt, lang)) : ''} · ${tr('{n} invitados', { n: d.guests?.length || 0 })}</small></div>
       </div>
       <div class="acts">
         <a class="btn sm" href="crear.html?id=${esc(d.id)}">Editar</a>
@@ -72,14 +81,14 @@ $('#drafts').addEventListener('click', (e) => {
   const del = e.target.closest('[data-del]');
   const dup = e.target.closest('[data-dup]');
   const tpl = e.target.closest('[data-tpl]');
-  if (del && confirm('¿Borrar esta invitación de este navegador? Los links que ya enviaste siguen funcionando.')) { deleteDraft(del.dataset.del); renderDrafts(); }
+  if (del && confirm(tr('¿Borrar esta invitación de este navegador? Los links que ya enviaste siguen funcionando.'))) { deleteDraft(del.dataset.del); renderDrafts(); }
   if (dup) {
     const c = duplicateDraft(dup.dataset.dup);
     if (c) { renderDrafts(); toast('Invitación duplicada (sin la lista de invitados)'); } else toast('No se pudo duplicar');
   }
   if (tpl) {
     const d = getDraft(tpl.dataset.tpl);
-    const name = d && prompt('Nombre para tu plantilla:', d.inv.ev?.names || 'Mi plantilla');
+    const name = d && prompt(tr('Nombre para tu plantilla:'), d.inv.ev?.names || 'Mi plantilla');
     if (!name) return;
     if (templateFromInvitation(d.inv, name, true)) {
       filter = 'mine';
@@ -94,9 +103,9 @@ renderDrafts();
 // ---------- Demos en vivo en la portada ----------
 async function demo(id, tplId) {
   const tpl = TEMPLATES.find((t) => t.id === tplId);
-  const inv = applyTheme(newInvitation(tpl), tpl);
+  const inv = applyTheme(newInvitation(tpl, lang), tpl);
   inv.theme.envelope = false;
-  $(id).src = 'i.html' + buildHash(await encodeData(inv), { name: 'Familia Pérez', passes: 4 });
+  $(id).src = 'i.html' + buildHash(await encodeData(inv), { name: tr('Familia Pérez'), passes: 4 });
 }
 demo('#demo1', 'xv-mariposas');
 demo('#demo2', 'torneo');

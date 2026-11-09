@@ -1,4 +1,6 @@
 // Catálogo: fuentes, decoraciones SVG, plantillas base y datos por defecto.
+import { ti } from './i18n.js';
+import { TEMPLATES_EN } from './templates.en.js';
 
 export const FONTS = {
   'Great Vibes': 'cursiva',
@@ -454,32 +456,45 @@ export const RSVP_FIELDS = {
 };
 export const defaultRsvpFields = () => ({ phone: 'off', count: 'req', companions: 'off', diet: 'off', song: 'off', msg: 'opt', custom: 'off', customQ: '' });
 
-export function newInvitation(tpl = TEMPLATES[0]) {
+// Orden por defecto de las secciones (la portada siempre va primero)
+export const SECTION_ORDER = ['msg', 'countdown', 'places', 'itin', 'dress', 'gifts', 'gallery', 'calendar', 'rsvp'];
+export function sectionOrder(inv) {
+  const o = (inv.order || []).filter((k) => SECTION_ORDER.includes(k));
+  return [...new Set([...o, ...SECTION_ORDER])];
+}
+
+export function newInvitation(tpl = TEMPLATES[0], lang = 'es') {
   const x = tpl.extra || {};
+  const en = lang === 'en' ? TEMPLATES_EN[tpl.id] || {} : null;
+  const tr = (s) => ti(lang, s);
+  const itin = (x.itin || [['18:00', 'Recepción'], ['19:00', 'Cena'], ['20:30', '¡A bailar!']])
+    .map(([time, label], i) => ({ time, label: en ? en.itin?.[i] || tr(label) : label }));
   return {
     v: 1,
+    lang,
     tpl: tpl.id,
     theme: { ...tpl.theme, envelope: true },
     ev: {
       type: tpl.type,
-      pre: tpl.ev.pre,
-      names: tpl.ev.names,
+      pre: en?.pre ?? tpl.ev.pre,
+      names: en?.names ?? tpl.ev.names,
       date: inDays(60),
       time: x.itin?.[0]?.[0] || '18:00',
-      msg: tpl.ev.msg,
+      msg: en?.msg ?? tpl.ev.msg,
       quote: '',
     },
     cover: '',
     places: [
-      { label: x.label || (tpl.type === 'boda' ? 'Ceremonia' : 'Lugar'), name: 'Salón de eventos', addr: 'Av. Anacaona, Santo Domingo', time: x.itin?.[0]?.[0] || '18:00' },
+      { label: en?.label || tr(x.label || (tpl.type === 'boda' ? 'Ceremonia' : 'Lugar')), name: tr('Salón de eventos'), addr: 'Av. Anacaona, Santo Domingo', time: x.itin?.[0]?.[0] || '18:00' },
     ],
-    itin: (x.itin || [['18:00', 'Recepción'], ['19:00', 'Cena'], ['20:30', '¡A bailar!']]).map(([time, label]) => ({ time, label })),
-    dress: { code: x.dress || 'Formal', note: '' },
-    gifts: { note: 'Tu presencia es nuestro mejor regalo, pero si deseas tener un detalle con nosotros:', items: [] },
+    itin,
+    dress: { code: en?.dress || tr(x.dress || 'Formal'), note: '' },
+    gifts: { note: tr('Tu presencia es nuestro mejor regalo, pero si deseas tener un detalle con nosotros:'), items: [] },
     gallery: [],
     music: '',
     rsvp: { phone: '', deadline: inDays(45), note: '', fields: defaultRsvpFields() },
-    show: { countdown: true, places: true, itin: true, dress: true, gifts: false, gallery: false, rsvp: true, calendar: true, table: true },
+    order: [...SECTION_ORDER],
+    show: { msg: true, countdown: true, places: true, itin: true, dress: true, gifts: false, gallery: false, rsvp: true, calendar: true, table: true },
   };
 }
 

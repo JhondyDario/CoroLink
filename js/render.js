@@ -1,5 +1,6 @@
 // Convierte los datos de una invitación en HTML. Lo usan el visor y la vista previa.
-import { cornerSVG, dividerSVG, fontsHref, EVENT_TYPES, sanitizeTheme, FONT_SCALE, RSVP_FIELDS, defaultRsvpFields } from './templates.js';
+import { cornerSVG, dividerSVG, fontsHref, EVENT_TYPES, sanitizeTheme, FONT_SCALE, RSVP_FIELDS, defaultRsvpFields, sectionOrder } from './templates.js';
+import { ti, fmtDateL, fmtTimeL } from './i18n.js';
 
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -19,9 +20,6 @@ export function waPhone(raw) {
   return d;
 }
 
-const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-
 export function parseDate(date, time) {
   if (!date) return null;
   const [y, m, d] = date.split('-').map(Number);
@@ -30,18 +28,9 @@ export function parseDate(date, time) {
   return isNaN(dt) ? null : dt;
 }
 
-export function fmtDate(dt) {
-  if (!dt) return '';
-  const d = DIAS[dt.getDay()];
-  return `${d[0].toUpperCase() + d.slice(1)} ${dt.getDate()} de ${MESES[dt.getMonth()]} de ${dt.getFullYear()}`;
-}
-
-export function fmtTime(t) {
-  if (!t) return '';
-  const [h, m] = t.split(':').map(Number);
-  const ap = h >= 12 ? 'p.m.' : 'a.m.';
-  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ap}`;
-}
+// Formato de fecha y hora (español por defecto)
+export const fmtDate = (dt, l = 'es') => fmtDateL(dt, l);
+export const fmtTime = (t, l = 'es') => fmtTimeL(t, l);
 
 export function mapsLink(p) {
   const q = encodeURIComponent([p.name, p.addr].filter(Boolean).join(', '));
@@ -112,6 +101,8 @@ function section(id, title, body, ic) {
 
 export function renderInvitation(inv, guest = {}) {
   const t = sanitizeTheme(inv.theme), ev = inv.ev || {}, show = inv.show || {};
+  const L = inv.lang === 'en' ? 'en' : 'es';
+  const tr = (s, v) => ti(L, s, v);
   guest = { name: String(guest.name || '').slice(0, 80), passes: Math.min(99, Math.max(0, parseInt(guest.passes, 10) || 0)), table: String(guest.table || '').slice(0, 40) };
   const dt = parseDate(ev.date, ev.time);
   const corner = cornerSVG(t.deco, t);
@@ -119,93 +110,100 @@ export function renderInvitation(inv, guest = {}) {
   const cover = safeUrl(inv.cover, { image: true });
   const parts = [];
 
-  // ---------- Portada ----------
+  // ---------- Portada (siempre primero) ----------
+  const tableTag = guest.table && show.table !== false
+    ? `<p class="table-tag">${/^(mesa|table)\b/i.test(guest.table) ? `${tr('Te sentamos en la')} <strong>${esc(guest.table)}</strong>` : `${tr('Tu mesa:')} <strong>${esc(guest.table)}</strong>`}</p>`
+    : '';
   parts.push(`<header class="hero ${cover ? 'has-cover' : ''}">
     ${cover ? `<div class="hero-img" data-edit="portada" style="background-image:url('${esc(cover)}')"></div>` : ''}
     <div class="hero-card" data-edit="evento">
       ${corner ? `<div class="corner tl">${corner}</div><div class="corner br">${corner}</div>` : ''}
-      ${guest.name ? `<p class="guest">Querido(a) <strong>${esc(guest.name)}</strong></p>` : ''}
+      ${guest.name ? `<p class="guest">${tr('Querido(a)')} <strong>${esc(guest.name)}</strong></p>` : ''}
       ${ev.pre ? `<p class="pre">${esc(ev.pre)}</p>` : ''}
-      <h1 class="names">${esc(ev.names || EVENT_TYPES[ev.type] || 'Mi evento')}</h1>
+      <h1 class="names">${esc(ev.names || tr(EVENT_TYPES[ev.type] || 'Mi evento'))}</h1>
       ${div}
-      ${dt ? `<p class="date-big">${esc(fmtDate(dt))}</p>` : ''}
-      ${ev.time ? `<p class="time-big">${esc(fmtTime(ev.time))}</p>` : ''}
-      ${guest.table && show.table !== false ? `<p class="table-tag">Tu mesa: <strong>${esc(guest.table)}</strong></p>` : ''}
-      ${guest.passes ? `<p class="passes">Hemos reservado <strong>${guest.passes}</strong> ${guest.passes === 1 ? 'lugar' : 'lugares'} para ti</p>` : ''}
+      ${dt ? `<p class="date-big">${esc(fmtDateL(dt, L))}</p>` : ''}
+      ${ev.time ? `<p class="time-big">${esc(fmtTimeL(ev.time, L))}</p>` : ''}
+      ${tableTag}
+      ${guest.passes ? `<p class="passes">${tr('Hemos reservado')} <strong>${guest.passes}</strong> ${tr(guest.passes === 1 ? 'lugar para ti' : 'lugares para ti')}</p>` : ''}
       <div class="scroll-hint" aria-hidden="true"><span></span></div>
     </div>
   </header>`);
 
-  if (ev.msg || ev.quote) {
-    parts.push(`<section class="sec reveal msg" data-edit="evento">
+  // ---------- Secciones, en el orden que escogió el anfitrión ----------
+  const S = {};
+  if (show.msg !== false && (ev.msg || ev.quote)) {
+    S.msg = `<section class="sec reveal msg" id="sec-msg" data-edit="evento">
       ${ev.msg ? `<p class="lead">${esc(ev.msg)}</p>` : ''}
       ${ev.quote ? `<blockquote>${esc(ev.quote)}</blockquote>` : ''}
-    </section>`);
+    </section>`;
   }
 
   if (show.countdown && dt) {
-    parts.push(section('countdown', 'Faltan', `<div class="countdown" data-target="${dt.getTime()}">
-      ${['Días', 'Horas', 'Min', 'Seg'].map((l) => `<div class="cd"><span class="cd-n">--</span><span class="cd-l">${l}</span></div>`).join('')}
-    </div>`, 'clock'));
+    S.countdown = section('countdown', tr('Faltan'), `<div class="countdown" data-target="${dt.getTime()}">
+      ${['Días', 'Horas', 'Min', 'Seg'].map((l) => `<div class="cd"><span class="cd-n">--</span><span class="cd-l">${tr(l)}</span></div>`).join('')}
+    </div>`, 'clock');
   }
 
   if (show.places && inv.places?.length) {
     const cards = inv.places.filter((p) => p.name || p.addr).map((p, i) => `
       <div class="place">
-        <h3>${esc(p.label || 'Lugar')}</h3>
+        <h3>${esc(p.label || tr('Lugar'))}</h3>
         <p class="place-name">${esc(p.name)}</p>
-        ${p.time ? `<p class="muted">${esc(fmtTime(p.time))}</p>` : ''}
+        ${p.time ? `<p class="muted">${esc(fmtTimeL(p.time, L))}</p>` : ''}
         ${p.addr ? `<p class="muted">${esc(p.addr)}</p>` : ''}
-        <div class="map" data-src="${esc(mapEmbed(p))}" data-i="${i}"><button class="btn ghost small map-load" type="button">Ver mapa</button></div>
+        <div class="map" data-src="${esc(mapEmbed(p))}" data-i="${i}"><button class="btn ghost small map-load" type="button">${tr('Ver mapa')}</button></div>
         <div class="btn-row">
           <a class="btn" href="${esc(mapsLink(p))}" target="_blank" rel="noopener">Google Maps</a>
           <a class="btn ghost" href="${esc(wazeLink(p))}" target="_blank" rel="noopener">Waze</a>
         </div>
       </div>`).join('');
-    if (cards) parts.push(section('places', 'Dónde', `<div class="places">${cards}</div>`, 'pin'));
+    if (cards) S.places = section('places', tr('Dónde'), `<div class="places">${cards}</div>`, 'pin');
   }
 
   if (show.itin && inv.itin?.length) {
-    parts.push(section('itin', 'Itinerario', `<ol class="timeline">${inv.itin.filter((x) => x.label).map((x) => `
-      <li><span class="tl-time">${esc(fmtTime(x.time))}</span><span class="tl-dot"></span><span class="tl-label">${esc(x.label)}</span></li>`).join('')}</ol>`, 'cal'));
+    S.itin = section('itin', tr('Itinerario'), `<ol class="timeline">${inv.itin.filter((x) => x.label).map((x) => `
+      <li><span class="tl-time">${esc(fmtTimeL(x.time, L))}</span><span class="tl-dot"></span><span class="tl-label">${esc(x.label)}</span></li>`).join('')}</ol>`, 'cal');
   }
 
   if (show.dress && (inv.dress?.code || inv.dress?.note)) {
-    parts.push(section('dress', 'Código de vestimenta', `<p class="big">${esc(inv.dress.code)}</p>${inv.dress.note ? `<p class="muted">${esc(inv.dress.note)}</p>` : ''}`, 'shirt'));
+    S.dress = section('dress', tr('Código de vestimenta'), `<p class="big">${esc(inv.dress.code)}</p>${inv.dress.note ? `<p class="muted">${esc(inv.dress.note)}</p>` : ''}`, 'shirt');
   }
 
   if (show.gifts && (inv.gifts?.note || inv.gifts?.items?.length)) {
     const items = (inv.gifts.items || []).filter((g) => g.label || g.detail).map((g) => {
       const url = safeUrl(g.detail);
       return `<div class="gift"><strong>${esc(g.label)}</strong>${url
-        ? `<a class="btn small" href="${esc(url)}" target="_blank" rel="noopener">Ver mesa de regalos</a>`
-        : `<span class="gift-detail">${esc(g.detail)}</span>${g.detail ? `<button class="btn ghost small copy" type="button" data-copy="${esc(g.detail)}">Copiar</button>` : ''}`}</div>`;
+        ? `<a class="btn small" href="${esc(url)}" target="_blank" rel="noopener">${tr('Ver mesa de regalos')}</a>`
+        : `<span class="gift-detail">${esc(g.detail)}</span>${g.detail ? `<button class="btn ghost small copy" type="button" data-copy="${esc(g.detail)}">${tr('Copiar')}</button>` : ''}`}</div>`;
     }).join('');
-    parts.push(section('gifts', 'Regalos', `${inv.gifts.note ? `<p>${esc(inv.gifts.note)}</p>` : ''}<div class="gifts">${items}</div>`, 'gift'));
+    S.gifts = section('gifts', tr('Regalos'), `${inv.gifts.note ? `<p>${esc(inv.gifts.note)}</p>` : ''}<div class="gifts">${items}</div>`, 'gift');
   }
 
   if (show.gallery && inv.gallery?.length) {
     const imgs = inv.gallery.map((u) => safeUrl(u, { image: true })).filter(Boolean);
-    if (imgs.length) parts.push(section('gallery', 'Galería', `<div class="gallery">${imgs.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>`, 'heart'));
+    if (imgs.length) S.gallery = section('gallery', tr('Galería'), `<div class="gallery">${imgs.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>`, 'heart');
   }
 
   if (show.calendar && dt) {
-    parts.push(`<section class="sec reveal center" data-edit="evento"><div class="btn-row">
-      <a class="btn" id="gcal" target="_blank" rel="noopener">Agregar a Google Calendar</a>
-      <button class="btn ghost" id="ics" type="button">Descargar evento (.ics)</button>
-    </div></section>`);
+    S.calendar = `<section class="sec reveal center" id="sec-calendar" data-edit="evento"><div class="btn-row">
+      <a class="btn" id="gcal" target="_blank" rel="noopener">${tr('Agregar a Google Calendar')}</a>
+      <button class="btn ghost" id="ics" type="button">${tr('Descargar evento (.ics)')}</button>
+    </div></section>`;
   }
 
   if (show.rsvp) {
     const deadline = inv.rsvp?.deadline ? parseDate(inv.rsvp.deadline) : null;
     const hasPhone = !!(inv.rsvp?.phone || '').replace(/\D/g, '');
-    parts.push(section('rsvp', 'Confirma tu asistencia', `
-      ${deadline ? `<p>Por favor confirma antes del <strong>${esc(fmtDate(deadline))}</strong></p>` : ''}
+    S.rsvp = section('rsvp', tr('Confirma tu asistencia'), `
+      ${deadline ? `<p>${tr('Por favor confirma antes del')} <strong>${esc(fmtDateL(deadline, L))}</strong></p>` : ''}
       ${inv.rsvp?.note ? `<p class="muted">${esc(inv.rsvp.note)}</p>` : ''}
-      ${rsvpForm(inv, guest, hasPhone)}`, 'heart'));
+      ${rsvpForm(inv, guest, hasPhone, tr)}`, 'heart');
   }
 
-  parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p><p class="made">Hecho con <a href="./" target="_blank">CoroLink</a> · gratis</p></footer>`);
+  for (const k of sectionOrder(inv)) if (S[k]) parts.push(S[k]);
+
+  parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p><p class="made">${tr('Hecho con')} <a href="./" target="_blank">CoroLink</a> · ${tr('gratis')}</p></footer>`);
 
   return `<div class="inv layout-${esc(t.layout)} pattern-${esc(t.pattern || 'none')}">${parts.join('')}</div>`;
 }
@@ -214,43 +212,44 @@ export function renderInvitation(inv, guest = {}) {
 export function rsvpFields(inv) {
   return { ...defaultRsvpFields(), ...(inv.rsvp?.fields || {}) };
 }
-function rsvpForm(inv, guest, hasPhone) {
+function rsvpForm(inv, guest, hasPhone, tr) {
   const F = rsvpFields(inv);
   const lvl = (k) => (['off', 'opt', 'req'].includes(F[k]) ? F[k] : 'off');
   const req = (k) => (lvl(k) === 'req' ? 'required' : '');
-  const lab = (k, text) => `${esc(text)}${lvl(k) === 'opt' ? ' <small>(opcional)</small>' : ''}`;
+  const lab = (k, text) => `${esc(text)}${lvl(k) === 'opt' ? ` <small>${tr('(opcional)')}</small>` : ''}`;
   const max = guest.passes || 20;
   const rows = [];
-  rows.push(`<label>Tu nombre<input name="name" required maxlength="80" value="${esc(guest.name || '')}" autocomplete="name"></label>`);
-  rows.push(`<div class="seg" role="radiogroup" aria-label="¿Asistirás?">
-      <label><input type="radio" name="go" value="si" checked><span>¡Sí, ahí estaré!</span></label>
-      <label><input type="radio" name="go" value="no"><span>No podré ir</span></label>
+  rows.push(`<label>${tr('Tu nombre')}<input name="name" required maxlength="80" value="${esc(guest.name || '')}" autocomplete="name"></label>`);
+  rows.push(`<div class="seg" role="radiogroup" aria-label="${tr('¿Asistirás?')}">
+      <label><input type="radio" name="go" value="si" checked><span>${tr('¡Sí, ahí estaré!')}</span></label>
+      <label><input type="radio" name="go" value="no"><span>${tr('No podré ir')}</span></label>
     </div>`);
   const yes = [];
-  if (lvl('phone') !== 'off') rows.push(`<label>${lab('phone', 'Tu teléfono')}<input name="phone" type="tel" inputmode="tel" maxlength="20" ${req('phone')} autocomplete="tel"></label>`);
-  if (lvl('count') !== 'off') yes.push(`<label>${lab('count', guest.passes ? `¿Cuántos van? (tienes ${guest.passes})` : '¿Cuántas personas van?')}<input name="n" type="number" min="1" max="${max}" value="${guest.passes || 1}" ${req('count')}></label>`);
-  if (lvl('companions') !== 'off') yes.push(`<label>${lab('companions', 'Nombres de tus acompañantes')}<input name="companions" maxlength="200" placeholder="Separados por coma" ${req('companions')}></label>`);
-  if (lvl('diet') !== 'off') yes.push(`<label>${lab('diet', 'Alergias o restricciones de comida')}<input name="diet" maxlength="120" placeholder="Vegetariano, sin gluten…" ${req('diet')}></label>`);
-  if (lvl('song') !== 'off') yes.push(`<label>${lab('song', 'Canción que no puede faltar')}<input name="song" maxlength="100" ${req('song')}></label>`);
+  if (lvl('phone') !== 'off') rows.push(`<label>${lab('phone', tr('Tu teléfono'))}<input name="phone" type="tel" inputmode="tel" maxlength="20" ${req('phone')} autocomplete="tel"></label>`);
+  if (lvl('count') !== 'off') yes.push(`<label>${lab('count', guest.passes ? tr('¿Cuántos van? (tienes {n})', { n: guest.passes }) : tr('¿Cuántas personas van?'))}<input name="n" type="number" min="1" max="${max}" value="${guest.passes || 1}" ${req('count')}></label>`);
+  if (lvl('companions') !== 'off') yes.push(`<label>${lab('companions', tr('Nombres de tus acompañantes'))}<input name="companions" maxlength="200" placeholder="${tr('Separados por coma')}" ${req('companions')}></label>`);
+  if (lvl('diet') !== 'off') yes.push(`<label>${lab('diet', tr('Alergias o restricciones de comida'))}<input name="diet" maxlength="120" placeholder="${tr('Vegetariano, sin gluten…')}" ${req('diet')}></label>`);
+  if (lvl('song') !== 'off') yes.push(`<label>${lab('song', tr('Canción que no puede faltar'))}<input name="song" maxlength="100" ${req('song')}></label>`);
   if (lvl('custom') !== 'off' && F.customQ) yes.push(`<label>${lab('custom', F.customQ)}<input name="custom" maxlength="200" ${req('custom')}></label>`);
   if (yes.length) rows.push(`<div class="if-yes">${yes.join('')}</div>`);
-  if (lvl('msg') !== 'off') rows.push(`<label>${lab('msg', 'Mensaje para los anfitriones')}<textarea name="msg" rows="2" maxlength="400" ${req('msg')}></textarea></label>`);
-  rows.push(`<button class="btn wide" type="submit">${hasPhone ? 'Confirmar por WhatsApp' : 'Confirmar'}</button>`);
+  if (lvl('msg') !== 'off') rows.push(`<label>${lab('msg', tr('Mensaje para los anfitriones'))}<textarea name="msg" rows="2" maxlength="400" placeholder="${tr('Unas palabras para los anfitriones')}" ${req('msg')}></textarea></label>`);
+  rows.push(`<button class="btn wide" type="submit">${tr(hasPhone ? 'Confirmar por WhatsApp' : 'Confirmar')}</button>`);
   return `<form class="rsvp" id="rsvp-form" novalidate>${rows.join('')}</form>`;
 }
 export { RSVP_FIELDS };
 
 export function envelopeHTML(inv, guest = {}) {
+  const tr = (s) => ti(inv.lang === 'en' ? 'en' : 'es', s);
   return `<div class="envelope" id="envelope">
     <div class="env-wrap">
-      ${guest.name ? `<p class="env-to">Para: <strong>${esc(guest.name)}</strong></p>` : ''}
+      ${guest.name ? `<p class="env-to">${tr('Para:')} <strong>${esc(guest.name)}</strong></p>` : ''}
       <div class="env-body">
         <div class="env-flap"></div>
         <div class="env-seal" aria-hidden="true">${esc((inv.ev.names || 'C').trim().charAt(0))}</div>
       </div>
       <div class="env-text">
         <p class="env-names">${esc(inv.ev.names)}</p>
-        <button class="btn" id="env-open" type="button">Abrir invitación</button>
+        <button class="btn" id="env-open" type="button">${tr('Abrir invitación')}</button>
       </div>
     </div>
   </div>`;

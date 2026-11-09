@@ -1,4 +1,8 @@
 import { decodeData, parseHash } from './codec.js';
+import { ti } from './i18n.js';
+// Idioma de la invitación abierta (los textos fijos salen en ese idioma)
+let L = 'es';
+const tr = (s, v) => ti(L, s, v);
 import { renderInvitation, envelopeHTML, applyThemeVars, ensureFonts, calendarLinks, waPhone, rsvpFields } from './render.js';
 
 const app = document.getElementById('app');
@@ -8,6 +12,8 @@ let countdownTimer = null;
 
 function render(inv, guest, { envelope }) {
   current = { inv, guest };
+  L = inv.lang === 'en' ? 'en' : 'es';
+  document.documentElement.lang = L;
   document.title = [inv.ev.pre, inv.ev.names].filter(Boolean).join(' · ') || 'Invitación';
   applyThemeVars(document.documentElement, inv.theme);
   ensureFonts(inv.theme);
@@ -39,7 +45,7 @@ function wire(inv, guest) {
       let s = Math.max(0, Math.floor((target - Date.now()) / 1000));
       const v = [Math.floor(s / 86400), Math.floor((s % 86400) / 3600), Math.floor((s % 3600) / 60), s % 60];
       nums.forEach((n, i) => (n.textContent = String(v[i]).padStart(2, '0')));
-      if (s === 0) cd.closest('.sec').querySelector('.sec-title').textContent = '¡Llegó el día!';
+      if (s === 0) cd.closest('.sec').querySelector('.sec-title').textContent = tr('¡Llegó el día!');
     };
     tick();
     countdownTimer = setInterval(tick, 1000);
@@ -53,8 +59,8 @@ function wire(inv, guest) {
   }));
 
   app.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = '¡Copiado!'; } catch { b.textContent = 'No se pudo copiar'; }
-    setTimeout(() => (b.textContent = 'Copiar'), 1600);
+    try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = tr('¡Copiado!'); } catch { b.textContent = tr('No se pudo copiar'); }
+    setTimeout(() => (b.textContent = tr('Copiar')), 1600);
   }));
 
   // Calendario
@@ -87,24 +93,24 @@ function wire(inv, guest) {
       const val = (k) => String(f.get(k) || '').trim();
       const F = rsvpFields(inv);
       const n = yes ? (F.count !== 'off' ? Math.max(1, parseInt(val('n'), 10) || 1) : guest.passes || 1) : 0;
-      const evName = `*${inv.ev.names || inv.ev.pre || 'tu evento'}*`;
+      const evName = `*${inv.ev.names || inv.ev.pre || tr('tu evento')}*`;
       const lines = [yes
-        ? `¡Hola! Soy *${val('name')}* ✅ Confirmo mi asistencia a ${evName}.`
-        : `¡Hola! Soy *${val('name')}*. Lamentablemente no podré asistir a ${evName} 😔`];
-      if (yes && F.count !== 'off') lines.push(`👥 Personas: *${n}*`);
-      if (yes && val('companions')) lines.push(`👫 Acompañantes: ${val('companions')}`);
-      if (val('phone')) lines.push(`📞 Teléfono: ${val('phone')}`);
-      if (yes && val('diet')) lines.push(`🍽️ Comida: ${val('diet')}`);
-      if (yes && val('song')) lines.push(`🎵 Canción: ${val('song')}`);
+        ? tr('¡Hola! Soy *{name}* ✅ Confirmo mi asistencia a {ev}.', { name: val('name'), ev: evName })
+        : tr('¡Hola! Soy *{name}*. Lamentablemente no podré asistir a {ev} 😔', { name: val('name'), ev: evName })];
+      if (yes && F.count !== 'off') lines.push(tr('👥 Personas: *{n}*', { n }));
+      if (yes && val('companions')) lines.push(tr('👫 Acompañantes: {v}', { v: val('companions') }));
+      if (val('phone')) lines.push(tr('📞 Teléfono: {v}', { v: val('phone') }));
+      if (yes && val('diet')) lines.push(tr('🍽️ Comida: {v}', { v: val('diet') }));
+      if (yes && val('song')) lines.push(tr('🎵 Canción: {v}', { v: val('song') }));
       if (yes && val('custom')) lines.push(`❓ ${F.customQ}: ${val('custom')}`);
       if (val('msg')) lines.push(`💬 ${val('msg')}`);
       // Código para que el gestor de invitados lo lea solo
       lines.push('', `CL|${guest.gid || '0'}|${yes ? 'si' : 'no'}|${n}`);
       const text = lines.join('\n');
       const url = `https://wa.me/${waPhone(inv.rsvp?.phone)}?text=${encodeURIComponent(text)}`;
-      if (isPreview) { form.querySelector('button[type=submit]').textContent = 'Vista previa: aquí se abriría WhatsApp'; return; }
+      if (isPreview) { form.querySelector('button[type=submit]').textContent = tr('Vista previa: aquí se abriría WhatsApp'); return; }
       window.open(url, '_blank', 'noopener');
-      form.innerHTML = `<p class="thanks">${yes ? '¡Gracias por confirmar! 🎉' : 'Gracias por avisar 💛'}</p><p class="muted">Si WhatsApp no se abrió, <a href="${url}" target="_blank" rel="noopener">toca aquí</a>.</p>`;
+      form.innerHTML = `<p class="thanks">${tr(yes ? '¡Gracias por confirmar! 🎉' : 'Gracias por avisar 💛')}</p><p class="muted">${tr('Si WhatsApp no se abrió,')} <a href="${url}" target="_blank" rel="noopener">${tr('toca aquí')}</a>.</p>`;
     });
   }
 
@@ -204,10 +210,11 @@ if (isPreview) {
   });
   parent.postMessage({ type: 'preview-ready' }, location.origin);
 } else {
+  if (/^en/i.test(navigator.language || '')) L = 'en';
   const load = async () => {
     const { d, to, passes, gid, table } = parseHash();
     if (!d) {
-      app.innerHTML = `<div class="empty"><h1>CoroLink</h1><p>Este link no tiene una invitación.</p><a class="btn" href="crear.html">Crear una gratis</a></div>`;
+      app.innerHTML = `<div class="empty"><h1>CoroLink</h1><p>${tr('Este link no tiene una invitación.')}</p><a class="btn" href="crear.html">${tr('Crear una gratis')}</a></div>`;
       return;
     }
     try {
@@ -215,7 +222,7 @@ if (isPreview) {
       render(inv, { name: to, passes, gid, table }, { envelope: inv.theme?.envelope !== false });
     } catch (err) {
       console.error(err);
-      app.innerHTML = `<div class="empty"><h1>Ups</h1><p>El link está incompleto o dañado. Pídele a quien te invitó que te lo reenvíe.</p></div>`;
+      app.innerHTML = `<div class="empty"><h1>${tr('Ups')}</h1><p>${tr('El link está incompleto o dañado. Pídele a quien te invitó que te lo reenvíe.')}</p></div>`;
     }
   };
   window.addEventListener('hashchange', load);

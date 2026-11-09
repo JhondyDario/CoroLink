@@ -1,14 +1,19 @@
 import { encodeData, decodeData, buildHash } from './codec.js';
-import { TEMPLATES, FONTS, DECOS, LAYOUTS, PATTERNS, EVENT_TYPES, CATEGORIES, categoryOf, RSVP_FIELDS, defaultRsvpFields, MAX_PEOPLE, MIN_GUESTS, getTemplate, newInvitation, applyTheme, fontsHref, sanitizeTheme } from './templates.js';
+import { TEMPLATES, FONTS, DECOS, LAYOUTS, PATTERNS, EVENT_TYPES, CATEGORIES, categoryOf, RSVP_FIELDS, defaultRsvpFields, MAX_PEOPLE, MIN_GUESTS, getTemplate, sectionOrder, newInvitation, applyTheme, fontsHref, sanitizeTheme } from './templates.js';
 import { esc, safeUrl, waPhone } from './render.js';
 import { tplCard, filterChips, filterTemplates } from './ui.js';
+import { t as tr, lang, startI18n } from './i18n.js';
+import { mountChrome } from './chrome.js';
 import { getDraft, saveDraft, updateDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate, listFavs, toggleFav, duplicateDraft, templateFromInvitation } from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
-const DEFAULT_MSG = 'Hola {nombre} 💌 Te tenemos una invitación especial. Ábrela aquí:\n{link}';
+startI18n();
+mountChrome(document.querySelector('.top-actions'), { star: false });
+
+const DEFAULT_MSG = tr('Hola {nombre} 💌 Te tenemos una invitación especial. Ábrela aquí:\n{link}');
 
 // ---------- Estado ----------
 const params = new URLSearchParams(location.search);
@@ -23,10 +28,10 @@ if (!draft) {
     inv.ev = { ...base.ev, ...inv.ev };
     inv.show = { ...base.show, ...inv.show };
   } else {
-    inv = newInvitation(TEMPLATES.includes(tpl) ? tpl : TEMPLATES[0]);
+    inv = newInvitation(TEMPLATES.includes(tpl) ? tpl : TEMPLATES[0], lang);
     applyTheme(inv, tpl);
     if (tpl.type) inv.ev.type = tpl.type;
-    if (tpl.ev) Object.assign(inv.ev, { pre: tpl.ev.pre, names: tpl.ev.names, msg: tpl.ev.msg });
+    if (tpl.ev && !TEMPLATES.includes(tpl)) Object.assign(inv.ev, { pre: tpl.ev.pre, names: tpl.ev.names, msg: tpl.ev.msg });
   }
   draft = { id: uid(), inv, guests: [], msg: DEFAULT_MSG };
   saveDraft(draft);
@@ -36,6 +41,8 @@ let inv = draft.inv;
 inv.rsvp ??= {};
 inv.rsvp.fields = { ...defaultRsvpFields(), ...(inv.rsvp.fields || {}) };
 inv.show.table ??= true;
+inv.lang ??= 'es';
+inv.order = sectionOrder(inv);
 
 const get = (path) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), inv);
 function set(path, val) {
@@ -67,7 +74,7 @@ function changed({ rerenderForm = false } = {}) {
 let toastT;
 function toast(msg) {
   const t = $('#toast');
-  t.textContent = msg;
+  t.textContent = tr(msg);
   t.classList.add('on');
   clearTimeout(toastT);
   toastT = setTimeout(() => t.classList.remove('on'), 2200);
@@ -117,7 +124,7 @@ function pickTemplate(e) {
   }
   const del = e.target.closest('[data-del]');
   if (del) {
-    if (confirm('¿Borrar esta plantilla?')) { deleteMyTemplate(del.dataset.del); renderTemplates(); }
+    if (confirm(tr('¿Borrar esta plantilla?'))) { deleteMyTemplate(del.dataset.del); renderTemplates(); }
     return;
   }
   const card = e.target.closest('.tpl');
@@ -127,17 +134,17 @@ function pickTemplate(e) {
   applyTheme(inv, { ...t, theme: sanitizeTheme(t.theme) });
   renderTemplates();
   changed({ rerenderForm: true });
-  toast(`Plantilla "${t.name}" aplicada`);
+  toast(tr('Plantilla "{name}" aplicada', { name: tr(t.name) }));
 }
 $('#tpl-grid').addEventListener('click', pickTemplate);
 $('#tpl-grid').addEventListener('keydown', pickTemplate);
 
 // Guardar esta invitación como plantilla (sólo diseño, o diseño + contenido)
 function saveAsTemplate(askContent = true) {
-  const name = prompt('Nombre para tu plantilla:', inv.ev.names || 'Mi plantilla');
+  const name = prompt(tr('Nombre para tu plantilla:'), inv.ev.names || 'Mi plantilla');
   if (!name) return;
   const withContent = askContent
-    ? confirm('¿Incluir también el contenido? (textos, lugares, itinerario, vestimenta, regalos, formulario…)\n\nAceptar = diseño y contenido\nCancelar = sólo el diseño')
+    ? confirm(tr('¿Incluir también el contenido? (textos, lugares, itinerario, vestimenta, regalos, formulario…)\n\nAceptar = diseño y contenido\nCancelar = sólo el diseño'))
     : true;
   const t = templateFromInvitation({ ...inv, theme: sanitizeTheme(inv.theme) }, name, withContent);
   if (!t) return toast('No se pudo guardar (¿fotos muy pesadas?)');
@@ -351,9 +358,23 @@ coverInput.addEventListener('input', () => {
 function fillCover() { coverInput.value = inv.cover?.startsWith('data:') ? '(foto subida)' : inv.cover || ''; }
 
 // ---------- Secciones ----------
-const SECTIONS = { countdown: 'Cuenta regresiva', places: 'Lugares y mapa', itin: 'Itinerario', dress: 'Vestimenta', gifts: 'Regalos', gallery: 'Galería de fotos', calendar: 'Agregar al calendario', rsvp: 'Confirmación de asistencia', table: 'Mostrar su mesa al invitado' };
+// Lista ordenable: se arrastra con el mouse o el dedo (o con ↑ ↓ desde el teclado)
+const SECTIONS = { msg: 'Mensaje de bienvenida', countdown: 'Cuenta regresiva', places: 'Lugares y mapa', itin: 'Itinerario', dress: 'Vestimenta', gifts: 'Regalos', gallery: 'Galería de fotos', calendar: 'Agregar al calendario', rsvp: 'Confirmación de asistencia' };
+const isOn = (k) => (k === 'msg' ? inv.show.msg !== false : !!inv.show[k]);
 function renderToggles() {
-  $('#toggles').innerHTML = Object.entries(SECTIONS).map(([k, l]) => `<label class="switch row"><input type="checkbox" data-s="${k}" ${inv.show[k] ? 'checked' : ''}><span></span>${l}</label>`).join('');
+  inv.order = sectionOrder(inv);
+  $('#toggles').innerHTML = `<ol class="sort-list" id="sort-list">${inv.order.map((k) => `
+    <li class="sort-item" data-k="${k}">
+      <span class="grip" aria-label="${tr('Arrastrar para mover')}" title="${tr('Arrastrar para mover')}">⠿</span>
+      <label class="switch"><input type="checkbox" data-s="${k}" ${isOn(k) ? 'checked' : ''}><span></span>${tr(SECTIONS[k])}</label>
+      <span class="sort-btns"><button type="button" data-mv="-1" aria-label="${tr('Subir')}">↑</button><button type="button" data-mv="1" aria-label="${tr('Bajar')}">↓</button></span>
+    </li>`).join('')}</ol>
+    <p class="hint">${tr('La portada siempre va primero.')}</p>
+    <label class="switch row"><input type="checkbox" data-s="table" ${inv.show.table !== false ? 'checked' : ''}><span></span>${tr('Mostrar su mesa al invitado')}</label>`;
+}
+function saveOrder() {
+  inv.order = $$('#sort-list .sort-item').map((li) => li.dataset.k);
+  changed();
 }
 $('#toggles').addEventListener('change', (e) => {
   const k = e.target.dataset.s;
@@ -361,6 +382,49 @@ $('#toggles').addEventListener('change', (e) => {
   inv.show[k] = e.target.checked;
   changed();
 });
+$('#toggles').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mv]');
+  if (!b) return;
+  const li = b.closest('.sort-item');
+  const sib = +b.dataset.mv < 0 ? li.previousElementSibling : li.nextElementSibling;
+  if (!sib) return;
+  if (+b.dataset.mv < 0) sib.before(li); else sib.after(li);
+  b.focus();
+  saveOrder();
+});
+// Arrastrar: al mover el puntero sobre la mitad de otro elemento, se cambian de lugar
+let sortDrag = null;
+$('#toggles').addEventListener('pointerdown', (e) => {
+  const grip = e.target.closest('.grip');
+  if (!grip) return;
+  const li = grip.closest('.sort-item');
+  sortDrag = { li, id: e.pointerId };
+  li.classList.add('dragging');
+  grip.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+// Se escucha en toda la ventana: al mover el elemento en la lista el navegador suelta
+// la "captura" del puntero, y el usuario puede soltar fuera de la lista.
+window.addEventListener('pointermove', (e) => {
+  if (!sortDrag) return;
+  const list = $('#sort-list');
+  for (const other of list.children) {
+    if (other === sortDrag.li) continue;
+    const r = other.getBoundingClientRect();
+    if (e.clientY > r.top && e.clientY < r.bottom) {
+      if (e.clientY < r.top + r.height / 2) other.before(sortDrag.li); else other.after(sortDrag.li);
+      break;
+    }
+  }
+});
+const endSort = () => {
+  if (!sortDrag) return;
+  sortDrag.li.classList.remove('dragging');
+  sortDrag = null;
+  saveOrder();
+};
+window.addEventListener('pointerup', endSort);
+window.addEventListener('pointercancel', endSort);
 
 // ---------- Links ----------
 const BASE = new URL('i.html', location.href).href;
@@ -385,8 +449,8 @@ async function updateShare() {
   $('#share-wa').href = `https://wa.me/?text=${encodeURIComponent(text)}`;
   const kb = (link.length / 1024).toFixed(1);
   $('#link-size').textContent = link.length > 30000
-    ? `Link de ${kb} KB: muy largo. Quita fotos subidas y usa links de imagen.`
-    : link.length > 2900 ? `Link de ${kb} KB. Funciona en WhatsApp, pero es muy largo para QR (quita fotos subidas para el QR).` : `Link de ${kb} KB. Perfecto 👌`;
+    ? tr('Link de {kb} KB: muy largo. Quita fotos subidas y usa links de imagen.', { kb })
+    : link.length > 2900 ? tr('Link de {kb} KB. Funciona en WhatsApp, pero es muy largo para QR (quita fotos subidas para el QR).', { kb }) : tr('Link de {kb} KB. Perfecto 👌', { kb });
   renderGuests();
   if ($('#tab-enviar').classList.contains('on')) renderQR(link);
 }
@@ -422,7 +486,7 @@ $('#qr-dl').addEventListener('click', () => {
 $('#copy-link').addEventListener('click', () => copy($('#share-link').value));
 $('#share-native').addEventListener('click', async () => {
   const link = $('#share-link').value;
-  if (navigator.share) { try { await navigator.share({ title: inv.ev.names, text: '¡Estás invitado! 💌', url: link }); } catch { /* cancelado */ } }
+  if (navigator.share) { try { await navigator.share({ title: inv.ev.names, text: tr('¡Estás invitado! 💌'), url: link }); } catch { /* cancelado */ } }
   else copy(link);
 });
 

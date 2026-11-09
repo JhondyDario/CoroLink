@@ -2,18 +2,21 @@
 import { EVENT_TYPES, CATEGORIES, categoryOf, cornerSVG, sanitizeTheme } from './templates.js';
 import { esc } from './render.js';
 import { isFav, listFavs } from './store.js';
+import { lang } from './i18n.js';
+import { TEMPLATES_EN } from './templates.en.js';
 
 export function tplCard(t, { mine = false, active = false, href = '' } = {}) {
   const th = sanitizeTheme(t.theme);
   const tag = href ? 'a' : 'div';
   const attrs = href ? `href="${esc(href)}"` : 'role="button" tabindex="0"';
   const fav = isFav(t.id);
+  const ev = (lang === 'en' && TEMPLATES_EN[t.id]) || t.ev || {};
   return `<${tag} class="tpl ${active ? 'on' : ''}" data-id="${esc(t.id)}" data-mine="${mine ? 1 : ''}" ${attrs} aria-label="Plantilla ${esc(t.name)}">
     <div class="tpl-thumb" style="background:${th.bg}">
       <div class="tpl-card l-${th.layout}" style="background:${th.card};color:${th.text}">
         <div class="tpl-corner">${cornerSVG(th.deco, th)}</div>
-        <small style="color:${th.accent}">${esc(t.ev?.pre || '')}</small>
-        <b style="font-family:'${th.fontTitle}'">${esc(t.ev?.names || t.name)}</b>
+        <small style="color:${th.accent}">${esc(ev.pre || '')}</small>
+        <b style="font-family:'${th.fontTitle}'">${esc(ev.names || t.name)}</b>
       </div>
       <button class="fav ${fav ? 'on' : ''}" data-fav="${esc(t.id)}" type="button" aria-pressed="${fav}" aria-label="${fav ? 'Quitar de favoritas' : 'Agregar a favoritas'}">${fav ? '★' : '☆'}</button>
       ${t.inv ? '<span class="tpl-badge">Con contenido</span>' : ''}

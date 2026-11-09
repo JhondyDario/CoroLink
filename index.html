@@ -7,6 +7,7 @@
   <meta name="description" content="Crea invitaciones digitales para bodas, XV años, cumpleaños y más. Gratis, sin registrarte, y envíalas por WhatsApp con confirmación de asistencia.">
   <meta property="og:title" content="CoroLink · Invitaciones digitales gratis">
   <meta property="og:description" content="Diseña tu invitación, envíala por WhatsApp y recibe las confirmaciones. Gratis y sin cuentas.">
+  <script>try{var m=localStorage.getItem("corolink.theme");if(m)document.documentElement.dataset.theme=m}catch(e){}</script>
   <meta name="theme-color" content="#f6f5f9">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +18,7 @@
 <body class="landing">
   <nav class="site-nav">
     <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="30" height="30"><span>CoroLink</span></a>
-    <a class="btn sm" href="crear.html">Crear invitación</a>
+    <div class="nav-actions" id="nav-actions"><a class="btn sm" href="crear.html">Crear invitación</a></div>
   </nav>
 
   <header class="hero-l">
@@ -28,6 +29,7 @@
         <a class="btn lg brand" href="crear.html">Crear mi invitación</a>
         <a class="btn lg ghost" href="#plantillas">Ver plantillas</a>
       </div>
+      <p class="oss-line">Alternativa open source y 100% gratis a las apps de invitaciones de pago.</p>
       <div class="badges"><span>✓ 100% gratis</span><span>✓ Sin registro</span><span>✓ Confirmación por WhatsApp</span><span>✓ Código abierto</span></div>
     </div>
     <div class="hero-art" aria-hidden="true">
@@ -77,7 +79,18 @@
     </div>
   </section>
 
-  <footer class="site-foot">CoroLink es software libre (licencia MIT). Hecho en RD 🇩🇴</footer>
+  <footer class="site-foot">
+    <div class="foot-card">
+      <h2>Código abierto en GitHub</h2>
+      <p>Alternativa open source y 100% gratis a las apps de invitaciones de pago.</p>
+      <div class="btn-row center" id="foot-actions">
+        <a class="btn" id="foot-star" target="_blank" rel="noopener">⭐ Danos una estrella <span class="gh-count" data-stars hidden></span></a>
+        <a class="btn ghost" id="foot-bug" target="_blank" rel="noopener">🐞 Reportar un problema</a>
+        <a class="btn ghost" id="foot-idea" target="_blank" rel="noopener">💡 Sugerir una mejora</a>
+      </div>
+    </div>
+    <p class="foot-meta">Hecho en RD 🇩🇴 · Licencia MIT</p>
+  </footer>
 
   <div class="toast" id="toast" role="status"></div>
   <script type="module" src="js/home.js"></script>
