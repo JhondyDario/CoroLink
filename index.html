@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Convida · Invitaciones digitales gratis</title>
+  <meta name="description" content="Crea invitaciones digitales para bodas, XV años, cumpleaños y más. Gratis, sin registrarte, y envíalas por WhatsApp con confirmación de asistencia.">
+  <meta property="og:title" content="Convida · Invitaciones digitales gratis">
+  <meta property="og:description" content="Diseña tu invitación, envíala por WhatsApp y recibe las confirmaciones. Gratis y sin cuentas.">
+  <meta name="theme-color" content="#f6f5f9">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="landing">
+  <nav class="site-nav">
+    <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="30" height="30"><span>Convida</span></a>
+    <a class="btn sm" href="crear.html">Crear invitación</a>
+  </nav>
+
+  <header class="hero-l">
+    <div>
+      <h1>Invitaciones digitales <em>bonitas y gratis</em></h1>
+      <p>Diseña la invitación de tu boda, XV, cumpleaños o baby shower desde el celular o la PC. Envíala por WhatsApp y recibe las confirmaciones al instante. Sin cuentas, sin pagar, sin anuncios.</p>
+      <div class="btn-row">
+        <a class="btn lg brand" href="crear.html">Crear mi invitación</a>
+        <a class="btn lg ghost" href="#plantillas">Ver plantillas</a>
+      </div>
+      <div class="badges"><span>✓ 100% gratis</span><span>✓ Sin registro</span><span>✓ Confirmación por WhatsApp</span><span>✓ Código abierto</span></div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="mock m1"><iframe tabindex="-1" id="demo1" title="Ejemplo"></iframe></div>
+      <div class="mock m2"><iframe tabindex="-1" id="demo2" title="Ejemplo"></iframe></div>
+    </div>
+  </header>
+
+  <section class="section-l" id="mis" hidden>
+    <h2>Mis invitaciones</h2>
+    <p>Guardadas en este navegador.</p>
+    <div class="drafts" id="drafts"></div>
+  </section>
+
+  <section class="section-l" id="plantillas">
+    <h2>Plantillas</h2>
+    <p>Escoge una y cámbiale todo: colores, letras, decoración, textos. También puedes crear las tuyas.</p>
+    <div class="filter" id="tpl-filter"></div>
+    <div class="tpl-grid" id="tpl-grid"></div>
+  </section>
+
+  <section class="section-l">
+    <h2>Todo lo que necesita tu evento</h2>
+    <p>Lo mismo que las plataformas de pago, sin pagar.</p>
+    <div class="feat">
+      <div><i>💌</i><b>Sobre animado</b><p>Tus invitados abren un sobre con su nombre y suena tu canción.</p></div>
+      <div><i>✅</i><b>Confirmación (RSVP)</b><p>Confirman con un toque y te llega el mensaje directo a tu WhatsApp.</p></div>
+      <div><i>👥</i><b>Links por invitado</b><p>Cada link lleva el nombre y la cantidad de pases. Lleva el control de a quién ya le enviaste.</p></div>
+      <div><i>📍</i><b>Mapa y cómo llegar</b><p>Google Maps y Waze con un toque, para ceremonia y recepción.</p></div>
+      <div><i>⏳</i><b>Cuenta regresiva</b><p>Días, horas y minutos para el gran día.</p></div>
+      <div><i>📅</i><b>Agregar al calendario</b><p>Google Calendar o archivo .ics para iPhone y Outlook.</p></div>
+      <div><i>🎁</i><b>Regalos y vestimenta</b><p>Mesa de regalos, cuentas para transferencia y código de vestimenta.</p></div>
+      <div><i>🔳</i><b>QR e imagen</b><p>Descarga el QR para imprimir y la portada como imagen para tus estados.</p></div>
+    </div>
+  </section>
+
+  <section class="section-l">
+    <h2>¿Cómo funciona?</h2>
+    <p>Tu invitación vive dentro del link. No la guardamos en ningún servidor, por eso es gratis para siempre.</p>
+    <div class="steps">
+      <div><b>Escoge una plantilla</b><p>Bodas, XV, cumpleaños, bautizos, graduaciones y más.</p></div>
+      <div><b>Personalízala</b><p>Textos, fotos, colores, lugares, itinerario y música.</p></div>
+      <div><b>Agrega invitados</b><p>Pega tu lista y cada quien recibe su link con su nombre.</p></div>
+      <div><b>Envía y recibe</b><p>Manda por WhatsApp y te llegan las confirmaciones.</p></div>
+    </div>
+  </section>
+
+  <footer class="site-foot">Convida es software libre (licencia MIT). Hecho en RD 🇩🇴</footer>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>

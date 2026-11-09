@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Crear invitación · Convida</title>
+  <meta name="theme-color" content="#16131f">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="editor-page">
+  <header class="topbar">
+    <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28"><span>Convida</span></a>
+    <span class="save-state" id="save-state">Guardado</span>
+    <div class="top-actions">
+      <a class="btn ghost sm" href="./#mis">Mis invitaciones</a>
+      <button class="btn sm" id="go-share" type="button">Enviar</button>
+    </div>
+  </header>
+
+  <div class="editor">
+    <aside class="panel">
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="plantilla" class="on">Plantilla</button>
+        <button role="tab" data-tab="diseno">Diseño</button>
+        <button role="tab" data-tab="contenido">Contenido</button>
+        <button role="tab" data-tab="secciones">Secciones</button>
+        <button role="tab" data-tab="invitados">Invitados</button>
+        <button role="tab" data-tab="enviar">Enviar</button>
+      </nav>
+
+      <div class="tab-body">
+        <!-- PLANTILLA -->
+        <section class="tab on" id="tab-plantilla">
+          <p class="hint">Escoge un punto de partida. Cambiar de plantilla sólo cambia el diseño: tu texto se queda.</p>
+          <div class="filter" id="tpl-filter"></div>
+          <div class="tpl-grid" id="tpl-grid"></div>
+          <h3 class="h">Mis plantillas</h3>
+          <div class="tpl-grid" id="my-tpl-grid"></div>
+          <p class="hint" id="my-tpl-empty">Todavía no tienes. Diseña algo en <b>Diseño</b> y dale a "Guardar como plantilla".</p>
+          <label class="btn ghost sm file-btn">Importar plantilla (.json)<input type="file" accept=".json,application/json" id="tpl-import" hidden></label>
+        </section>
+
+        <!-- DISEÑO -->
+        <section class="tab" id="tab-diseno">
+          <h3 class="h">Estilo</h3>
+          <div class="chips" id="layout-chips"></div>
+          <h3 class="h">Decoración</h3>
+          <div class="chips" id="deco-chips"></div>
+          <h3 class="h">Colores</h3>
+          <div class="palettes" id="palettes"></div>
+          <div class="colors">
+            <label><input type="color" data-bind="theme.bg"><span>Fondo</span></label>
+            <label><input type="color" data-bind="theme.card"><span>Tarjeta</span></label>
+            <label><input type="color" data-bind="theme.text"><span>Texto</span></label>
+            <label><input type="color" data-bind="theme.primary"><span>Principal</span></label>
+            <label><input type="color" data-bind="theme.accent"><span>Acento</span></label>
+          </div>
+          <h3 class="h">Tipografía</h3>
+          <div class="row2">
+            <label class="f">Títulos<select data-bind="theme.fontTitle" id="font-title"></select></label>
+            <label class="f">Texto<select data-bind="theme.fontBody" id="font-body"></select></label>
+          </div>
+          <h3 class="h">Fondo</h3>
+          <div class="chips" id="pattern-chips"></div>
+          <label class="switch"><input type="checkbox" data-bind="theme.envelope"><span></span>Abrir con animación de sobre</label>
+          <div class="card-box">
+            <h3 class="h">Hazla tu plantilla</h3>
+            <p class="hint">Guarda este diseño para reusarlo o compártelo como archivo con otra gente.</p>
+            <div class="btn-row">
+              <button class="btn sm" id="tpl-save" type="button">Guardar como plantilla</button>
+              <button class="btn ghost sm" id="tpl-export" type="button">Exportar .json</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- CONTENIDO -->
+        <section class="tab" id="tab-contenido">
+          <details open><summary>Evento</summary>
+            <label class="f">Tipo de evento<select data-bind="ev.type" id="ev-type"></select></label>
+            <label class="f">Frase de arriba<input data-bind="ev.pre" placeholder="Nos casamos"></label>
+            <label class="f">Nombres / título<input data-bind="ev.names" placeholder="Ana & Luis"></label>
+            <div class="row2">
+              <label class="f">Fecha<input type="date" data-bind="ev.date"></label>
+              <label class="f">Hora<input type="time" data-bind="ev.time"></label>
+            </div>
+            <label class="f">Mensaje<textarea rows="3" data-bind="ev.msg"></textarea></label>
+            <label class="f">Frase o cita (opcional)<textarea rows="2" data-bind="ev.quote"></textarea></label>
+          </details>
+          <details><summary>Foto de portada</summary>
+            <p class="hint">Pega el link de una imagen o súbela. Si la subes, la comprimimos y va dentro del link (lo hace más largo).</p>
+            <label class="f">Link de la imagen<input placeholder="https://…" id="cover-url"></label>
+            <div class="btn-row">
+              <label class="btn ghost sm file-btn">Subir foto<input type="file" accept="image/*" id="cover-file" hidden></label>
+              <button class="btn ghost sm" id="cover-clear" type="button">Quitar</button>
+            </div>
+          </details>
+          <details><summary>Lugares</summary>
+            <div class="list" id="places-list"></div>
+            <button class="btn ghost sm" type="button" data-add="places">+ Agregar lugar</button>
+          </details>
+          <details><summary>Itinerario</summary>
+            <div class="list" id="itin-list"></div>
+            <button class="btn ghost sm" type="button" data-add="itin">+ Agregar momento</button>
+          </details>
+          <details><summary>Vestimenta</summary>
+            <label class="f">Código<input data-bind="dress.code" placeholder="Formal, Cóctel, Blanco total…"></label>
+            <label class="f">Nota<input data-bind="dress.note" placeholder="Evitar el color blanco"></label>
+          </details>
+          <details><summary>Regalos</summary>
+            <label class="f">Mensaje<textarea rows="2" data-bind="gifts.note"></textarea></label>
+            <div class="list" id="gifts-list"></div>
+            <button class="btn ghost sm" type="button" data-add="gifts">+ Agregar opción</button>
+          </details>
+          <details><summary>Galería</summary>
+            <div class="thumbs" id="gallery-list"></div>
+            <div class="row-add"><input id="gallery-url" placeholder="Link de imagen https://…"><button class="btn ghost sm" id="gallery-add" type="button">Agregar</button></div>
+            <label class="btn ghost sm file-btn">Subir fotos<input type="file" accept="image/*" multiple id="gallery-file" hidden></label>
+          </details>
+          <details><summary>Música</summary>
+            <label class="f">Link de YouTube o de un .mp3<input data-bind="music" placeholder="https://youtu.be/…"></label>
+            <p class="hint">Empieza a sonar cuando el invitado abre el sobre.</p>
+          </details>
+          <details><summary>Confirmación (RSVP)</summary>
+            <label class="f">Tu WhatsApp (ahí te llegan las confirmaciones)<input type="tel" data-bind="rsvp.phone" placeholder="809 555 1234" inputmode="tel"></label>
+            <label class="f">Confirmar antes del<input type="date" data-bind="rsvp.deadline"></label>
+            <label class="f">Nota<input data-bind="rsvp.note" placeholder="Evento sólo para adultos"></label>
+          </details>
+        </section>
+
+        <!-- SECCIONES -->
+        <section class="tab" id="tab-secciones">
+          <p class="hint">Prende o apaga lo que aparece en la invitación.</p>
+          <div class="toggles" id="toggles"></div>
+        </section>
+
+        <!-- INVITADOS -->
+        <section class="tab" id="tab-invitados">
+          <p class="hint">Cada invitado recibe su propio link con su nombre y la cantidad de pases.</p>
+          <form class="guest-add" id="guest-form">
+            <input name="name" placeholder="Nombre (ej. Familia Rodríguez)" required>
+            <input name="passes" type="number" min="1" max="20" value="2" title="Pases">
+            <input name="phone" type="tel" placeholder="WhatsApp (opcional)" inputmode="tel">
+            <button class="btn sm" type="submit">Agregar</button>
+          </form>
+          <details><summary>Agregar varios de una vez</summary>
+            <p class="hint">Uno por línea: <code>Nombre, pases, teléfono</code></p>
+            <textarea id="bulk" rows="4" placeholder="Familia Pérez, 4, 8095551234&#10;Juan Martínez, 1"></textarea>
+            <button class="btn ghost sm" id="bulk-add" type="button">Agregar lista</button>
+          </details>
+          <label class="f">Mensaje para enviar<textarea id="send-msg" rows="3"></textarea></label>
+          <p class="hint">Usa <code>{nombre}</code>, <code>{pases}</code> y <code>{link}</code>.</p>
+          <div class="guest-stats" id="guest-stats"></div>
+          <ul class="guests" id="guest-list"></ul>
+          <div class="btn-row"><button class="btn ghost sm" id="guest-csv" type="button">Descargar lista (.csv)</button></div>
+        </section>
+
+        <!-- ENVIAR -->
+        <section class="tab" id="tab-enviar">
+          <h3 class="h">Link general</h3>
+          <div class="link-box"><input id="share-link" readonly><button class="btn sm" id="copy-link" type="button">Copiar</button></div>
+          <p class="hint" id="link-size"></p>
+          <div class="btn-row">
+            <a class="btn sm wa" id="share-wa" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+            <button class="btn ghost sm" id="share-native" type="button">Compartir…</button>
+            <a class="btn ghost sm" id="share-open" target="_blank" rel="noopener">Abrir</a>
+          </div>
+          <h3 class="h">Código QR</h3>
+          <p class="hint">Para imprimir en tarjetas o poner en la mesa.</p>
+          <div class="qr" id="qr"></div>
+          <div class="btn-row"><button class="btn ghost sm" id="qr-dl" type="button">Descargar QR</button></div>
+          <h3 class="h">Imagen</h3>
+          <p class="hint">Descarga la portada como imagen para estados de WhatsApp o Instagram.</p>
+          <div class="btn-row"><button class="btn ghost sm" id="png-dl" type="button">Descargar imagen</button></div>
+          <h3 class="h">Respaldo</h3>
+          <div class="btn-row">
+            <button class="btn ghost sm" id="inv-export" type="button">Exportar invitación</button>
+            <label class="btn ghost sm file-btn">Importar<input type="file" accept=".json,application/json" id="inv-import" hidden></label>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="stage" id="stage">
+      <div class="stage-bar">
+        <div class="seg-sm" id="device">
+          <button data-d="phone" class="on" type="button">Celular</button>
+          <button data-d="desktop" type="button">PC</button>
+        </div>
+        <label class="switch sm"><input type="checkbox" id="pv-envelope"><span></span>Sobre</label>
+        <select id="pv-guest" class="sm"><option value="">Sin invitado</option></select>
+        <button class="btn ghost sm close-preview" id="close-preview" type="button">Cerrar</button>
+      </div>
+      <div class="device phone" id="device-frame"><iframe id="preview" src="i.html?preview=1" title="Vista previa"></iframe></div>
+    </section>
+  </div>
+
+  <button class="fab" id="open-preview" type="button">Vista previa</button>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module" src="js/editor.js"></script>
+</body>
+</html>
