@@ -25,6 +25,8 @@ Most invitation apps charge you per event, lock features behind a paywall, or st
 - 33 ready-to-use templates for weddings, quinceañeras, birthdays, baby showers, graduations, **gaming tournaments, LAN parties**, Halloween, New Year's, BBQs, conferences and more
 - Change colors, fonts and decorations, or tap any part of the preview to edit it
 - Free photos and music built in (Creative Commons), or upload your own
+- Photo gallery of up to 10 pictures as a grid, a carousel or swipeable cards
+- Rename or hide any section title, and reorder sections by dragging them
 - Add your Spotify playlist
 - Save your favorite templates, turn your own invitations into templates, and duplicate past events
 

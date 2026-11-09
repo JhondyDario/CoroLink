@@ -147,7 +147,7 @@ export const EN = {
 
   // Editor: pestañas y diseño
   'Crear invitación · CoroLink': 'Create invitation · CoroLink', 'Plantilla': 'Template', 'Diseño': 'Design', 'Contenido': 'Content', 'Secciones': 'Sections',
-  'Escoge un punto de partida. Cambiar de plantilla sólo cambia el diseño: tu texto se queda. Toca ☆ para guardarla en favoritas.': 'Pick a starting point. Switching templates only changes the design: your text stays. Tap ☆ to save it to favorites.',
+  'Escoge un punto de partida. Cambiar de plantilla sólo cambia el diseño: tu texto se queda. Toca la estrella para guardarla en favoritas.': 'Pick a starting point. Switching templates only changes the design: your text stays. Tap the star to save it to favorites.',
   '¿Te gustó cómo quedó una invitación? En': 'Love how an invitation turned out? Use', 'Enviar → Guardar como plantilla': 'Send → Save as template',
   'la conviertes en plantilla para tus próximos eventos.': 'to turn it into a template for future events.',
   'Importar plantilla (.json)': 'Import template (.json)', 'Estilo': 'Style', 'Decoración': 'Decoration', 'Colores': 'Colors', 'Fondo': 'Background',
@@ -253,7 +253,14 @@ export const EN = {
   'Mesa {n}': 'Table {n}', 'Pista': 'Dance floor', 'por asignar': 'to be assigned', '{n} libres': '{n} free', 'Importada': 'Imported',
   'Quitar uno': 'Remove one', 'Llegó uno': 'One arrived',
 
+  '100% gratis': '100% free', 'Sin registro': 'No sign-up', 'Confirmación por WhatsApp': 'RSVP via WhatsApp', 'Código abierto': 'Open source',
+  // Panel general, encabezados y galería
+  'Toda la invitación': 'Whole invitation', 'Toca cualquier parte de la invitación para editarla. Aquí tienes lo general:': 'Tap any part of the invitation to edit it. Here are the general settings:',
+  'Volver a las opciones generales': 'Back to general settings', 'Título de la sección': 'Section title', 'Título de la cuenta regresiva': 'Countdown title', 'Mostrar título': 'Show title',
+  'Estilo de la galería': 'Gallery style', 'Cuadrícula': 'Grid', 'Carrusel': 'Carousel', 'Tarjetas (deslizar)': 'Cards (swipe)', '{n} de {max} fotos': '{n} of {max} photos',
+  'Máximo {max} fotos en la galería': 'Up to {max} photos in the gallery', '{n} foto(s) agregada(s)': '{n} photo(s) added', 'Anterior': 'Previous', 'Siguiente': 'Next', 'Desliza la foto': 'Swipe the photo',
   // Imágenes, música y Spotify
+  'Buscar imagen': 'Search image', 'Subir la mía': 'Upload mine', 'Subir mías': 'Upload mine', 'Favoritas': 'Favorites', 'Link de Spotify válido. Ya aparece en la invitación.': 'Valid Spotify link. It now shows in the invitation.', 'Toca la estrella para guardarla en favoritas.': 'Tap the star to save it to favorites.', 'Comida y alergias': 'Food and allergies', 'Canciones pedidas': 'Song requests', 'Mensajes': 'Messages', 'Llegó': 'Arrived',
   'Foto de portada': 'Cover photo', '🔍 Buscar imagen': '🔍 Search image', '📤 Subir la mía': '📤 Upload mine', 'Pegar un link de imagen': 'Paste an image link',
   'Las fotos del buscador son libres (Creative Commons) y el crédito al autor sale solo al pie de la invitación. Si subes la tuya, la comprimimos y va dentro del link (lo hace más largo).': 'Photos from the search are free (Creative Commons) and the author credit is added automatically at the bottom of the invitation. If you upload your own, we compress it and store it inside the link (which makes it longer).',
   '🔍 Buscar imágenes': '🔍 Search images', '📤 Subir mías': '📤 Upload mine', 'Música de fondo': 'Background music', 'Suena cuando el invitado abre el sobre. Es opcional.': 'Plays when the guest opens the envelope. Optional.',

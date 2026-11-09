@@ -5,11 +5,13 @@ import { MAX_PEOPLE, MIN_GUESTS, EVENT_TYPES } from './templates.js';
 import { getDraft, updateDraft, uid, listDrafts } from './store.js';
 import { t as tr, startI18n, langSwitch } from './i18n.js';
 import { mountChrome } from './chrome.js';
+import { icon, hydrateIcons } from './icons.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
+hydrateIcons();
 startI18n();
 mountChrome(document.querySelector('.top-actions'));
 
@@ -182,7 +184,7 @@ function renderList() {
       <div class="g-row">
         <button class="g-main" type="button" data-toggle aria-expanded="${open}">
           <b>${esc(g.name)}</b>
-          <small>${tr('{n} pase(s)', { n: g.passes })}${g.group ? ' · ' + esc(g.group) : ''}${tn ? ' · 🪑 ' + esc(tn) : ''}${g.sent ? ' · ' + tr('enviada') : ''}</small>
+          <small>${tr('{n} pase(s)', { n: g.passes })}${g.group ? ' · ' + esc(g.group) : ''}${tn ? ' · ' + icon('chair', { size: 13 }) + ' ' + esc(tn) : ''}${g.sent ? ' · ' + tr('enviada') : ''}</small>
         </button>
         <span class="pill ${cls}">${label}${g.status === 'si' ? ' · ' + g.confirmed : ''}</span>
         <div class="g-actions">
@@ -303,9 +305,9 @@ function applyConfirmations(text) {
   }
   pendingUnknown = unknown;
   $('#report').innerHTML = `<div class="notice ok-n"><b>${tr('{n} confirmación(es) actualizada(s).', { n: done.length })}</b>
-    ${done.length ? `<p>${done.map((g) => `${esc(g.name)}: ${g.status === 'si' ? `✅ ${g.confirmed}` : '❌ ' + tr('no va')}`).join(' · ')}</p>` : ''}</div>
+    ${done.length ? `<p>${done.map((g) => `${esc(g.name)}: ${g.status === 'si' ? `${icon('check', { size: 14, cls: 'ok-ic' })} ${g.confirmed}` : icon('x', { size: 14, cls: 'bad-ic' }) + ' ' + tr('no va')}`).join(' · ')}</p>` : ''}</div>
     ${unknown.length ? `<div class="notice"><b>${tr('{n} persona(s) confirmaron con el link general y no están en tu lista:', { n: unknown.length })}</b>
-      <ul class="unk">${unknown.map((u, i) => `<li>${esc(u.name)} · ${u.go === 'si' ? `✅ ${u.n}` : '❌'} <button class="btn sm" type="button" data-addunk="${i}">Agregar</button></li>`).join('')}</ul></div>` : ''}`;
+      <ul class="unk">${unknown.map((u, i) => `<li>${esc(u.name)} · ${u.go === 'si' ? `${icon('check', { size: 14, cls: 'ok-ic' })} ${u.n}` : icon('x', { size: 14, cls: 'bad-ic' })} <button class="btn sm" type="button" data-addunk="${i}">Agregar</button></li>`).join('')}</ul></div>` : ''}`;
   changed();
 }
 let pendingUnknown = [];
@@ -317,7 +319,7 @@ $('#report').addEventListener('click', (e) => {
   if (r === 'limite') return toast(tr('No cabe: el límite es de {max} personas.', { max: MAX_PEOPLE }));
   const g = guests.at(-1);
   Object.assign(g, { status: u.go, confirmed: u.go === 'si' ? Math.max(1, u.n) : 0, sent: true, answers: u.answers });
-  b.replaceWith('agregado ✓');
+  b.replaceWith(tr('agregado ✓'));
   changed();
 });
 $('#process').addEventListener('click', () => { applyConfirmations($('#paste').value); $('#paste').value = ''; });
@@ -333,7 +335,7 @@ function renderAnswers() {
     const xs = yes.filter((g) => g.answers?.[k]);
     return xs.length ? `<div class="card"><h4>${l}</h4><ul>${xs.map((g) => `<li><b>${esc(g.name)}:</b> ${esc(g.answers[k])}</li>`).join('')}</ul></div>` : '';
   };
-  const html = list('diet', '🍽️ Comida y alergias') + list('song', '🎵 Canciones pedidas') + list('companions', '👫 Acompañantes') + list('custom', '❓ Tu pregunta') + list('msg', '💬 Mensajes');
+  const html = list('diet', tr('Comida y alergias')) + list('song', tr('Canciones pedidas')) + list('companions', tr('Acompañantes')) + list('custom', tr('Tu pregunta')) + list('msg', tr('Mensajes'));
   $('#answers').innerHTML = html || '<p class="hint">Aquí verás las respuestas (comida, canciones, mensajes…) cuando cargues confirmaciones.</p>';
 }
 
@@ -509,7 +511,7 @@ function renderTablePanel() {
       <label class="f">Forma<select data-t="kind"><option value="round" ${t.kind === 'round' ? 'selected' : ''}>Redonda</option><option value="rect" ${t.kind === 'rect' ? 'selected' : ''}>Larga</option></select></label>
     </div>
     <p class="hint">${tr('{used} de {seats} sillas ocupadas', { used: used(t), seats: t.seats })}${free < 0 ? ` · <b class="warn">${tr('sobran {n} personas', { n: -free })}</b>` : ''}</p>
-    <ul class="plain">${here.map((g) => `<li><span>${esc(g.name)} <small>${people(g)}${g.status === 'si' ? ' ✅' : g.status === 'no' ? ' ❌' : ''}</small></span><button class="btn ghost sm" data-unseat="${g.id}" type="button">Quitar</button></li>`).join('') || '<li class="hint">Nadie todavía</li>'}</ul>
+    <ul class="plain">${here.map((g) => `<li><span>${esc(g.name)} <small>${people(g)}${g.status === 'si' ? ' ' + icon('check', { size: 13, cls: 'ok-ic' }) : g.status === 'no' ? ' ' + icon('x', { size: 13, cls: 'bad-ic' }) : ''}</small></span><button class="btn ghost sm" data-unseat="${g.id}" type="button">Quitar</button></li>`).join('') || '<li class="hint">Nadie todavía</li>'}</ul>
     ${unseated.length ? `<label class="f">Sentar aquí<select data-seat-here><option value="">Escoge un invitado…</option>${unseated.map((g) => `<option value="${g.id}" ${people(g) > free ? 'disabled' : ''}>${esc(g.name)} (${people(g)})</option>`).join('')}</select></label>` : ''}
     <div class="btn-row"><button class="btn ghost sm" data-tclose type="button">Listo</button><button class="btn ghost sm danger" data-tdel type="button">Eliminar mesa</button></div></div>`;
 }
@@ -550,10 +552,10 @@ function renderCheckin() {
   $('#clist').innerHTML = list.map((g) => {
     const n = people(g) || g.passes, arr = +g.arrived || 0;
     return `<li class="${arr >= n ? 'in' : ''}" data-g="${g.id}">
-      <div class="g-main"><b>${esc(g.name)}</b><small>${tableName(g) ? '🪑 ' + esc(tableName(g)) : tr('Sin mesa')} · ${arr}/${n}</small></div>
+      <div class="g-main"><b>${esc(g.name)}</b><small>${tableName(g) ? icon('chair', { size: 13 }) + ' ' + esc(tableName(g)) : tr('Sin mesa')} · ${arr}/${n}</small></div>
       <div class="g-actions">
         ${arr > 0 ? `<button class="btn ghost sm" data-arr="-1" type="button" aria-label="Quitar uno">−</button>` : ''}
-        ${arr < n ? `<button class="btn ghost sm" data-arr="1" type="button" aria-label="Llegó uno">+1</button><button class="btn sm ok-b" data-arr="all" type="button">Llegaron</button>` : '<span class="pill ok">✓ Llegó</span>'}
+        ${arr < n ? `<button class="btn ghost sm" data-arr="1" type="button" aria-label="Llegó uno">+1</button><button class="btn sm ok-b" data-arr="all" type="button">Llegaron</button>` : `<span class="pill ok">${icon('check', { size: 13 })} ${tr('Llegó')}</span>`}
       </div></li>`;
   }).join('') || '<li class="hint">No hay invitados que coincidan.</li>';
 }

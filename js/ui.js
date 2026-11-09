@@ -1,8 +1,9 @@
 // Piezas de interfaz compartidas por la portada y el editor.
 import { EVENT_TYPES, CATEGORIES, categoryOf, cornerSVG, sanitizeTheme } from './templates.js';
 import { esc } from './render.js';
+import { icon } from './icons.js';
 import { isFav, listFavs } from './store.js';
-import { lang } from './i18n.js';
+import { lang, t } from './i18n.js';
 import { TEMPLATES_EN } from './templates.en.js';
 
 export function tplCard(t, { mine = false, active = false, href = '' } = {}) {
@@ -18,7 +19,7 @@ export function tplCard(t, { mine = false, active = false, href = '' } = {}) {
         <small style="color:${th.accent}">${esc(ev.pre || '')}</small>
         <b style="font-family:'${th.fontTitle}'">${esc(ev.names || t.name)}</b>
       </div>
-      <button class="fav ${fav ? 'on' : ''}" data-fav="${esc(t.id)}" type="button" aria-pressed="${fav}" aria-label="${fav ? 'Quitar de favoritas' : 'Agregar a favoritas'}">${fav ? '★' : '☆'}</button>
+      <button class="fav ${fav ? 'on' : ''}" data-fav="${esc(t.id)}" type="button" aria-pressed="${fav}" aria-label="${fav ? 'Quitar de favoritas' : 'Agregar a favoritas'}">${icon(fav ? 'star-on' : 'star', { size: 17 })}</button>
       ${t.inv ? '<span class="tpl-badge">Con contenido</span>' : ''}
     </div>
     <div class="tpl-meta"><span>${esc(t.name)}</span><em>${esc(EVENT_TYPES[t.type] || '')}</em>
@@ -29,8 +30,8 @@ export function tplCard(t, { mine = false, active = false, href = '' } = {}) {
 // Filtros de la galería: favoritas, mis plantillas y las categorías
 export function filterChips(current, { favs = 0, mine = 0 } = {}) {
   const opts = [['', 'Todas']];
-  if (favs) opts.push(['fav', `★ Favoritas (${favs})`]);
-  if (mine) opts.push(['mine', `Mis plantillas (${mine})`]);
+  if (favs) opts.push(['fav', `${icon('star-on', { size: 13 })} ${t('Favoritas')} (${favs})`]);
+  if (mine) opts.push(['mine', `${t('Mis plantillas')} (${mine})`]);
   Object.entries(CATEGORIES).forEach(([k, c]) => opts.push([k, c.name]));
   return opts.map(([v, l]) => `<button type="button" class="chip ${current === v ? 'on' : ''}" data-f="${v}">${l}</button>`).join('');
 }

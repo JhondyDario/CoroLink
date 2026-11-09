@@ -1,5 +1,6 @@
 import { decodeData, parseHash } from './codec.js';
 import { ti } from './i18n.js';
+import { icon } from './icons.js';
 // Idioma de la invitación abierta (los textos fijos salen en ese idioma)
 let L = 'es';
 const tr = (s, v) => ti(L, s, v);
@@ -62,6 +63,10 @@ function wire(inv, guest) {
     try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = tr('¡Copiado!'); } catch { b.textContent = tr('No se pudo copiar'); }
     setTimeout(() => (b.textContent = tr('Copiar')), 1600);
   }));
+
+  // Galería
+  app.querySelectorAll('[data-gal="carousel"]').forEach(wireCarousel);
+  app.querySelectorAll('[data-gal="stack"]').forEach(wireStack);
 
   // Calendario
   const cal = calendarLinks(inv);
@@ -139,7 +144,7 @@ function setupMusicButton(inv, autoplay) {
   btn.id = 'music-btn';
   btn.className = 'music-btn';
   btn.setAttribute('aria-label', 'Música');
-  btn.innerHTML = '♪';
+  btn.innerHTML = icon('music', { size: 20 });
   document.body.appendChild(btn);
   const id = ytId(url);
   let playing = false;
@@ -187,8 +192,11 @@ if (isPreview) {
   app.addEventListener('click', (e) => {
     const el = e.target.closest('[data-edit]');
     if (!el || e.target.closest('#envelope')) return;
-    e.preventDefault();
-    e.stopPropagation();
+    // Las flechas y puntitos de la galería siguen funcionando para poder probarla
+    if (!e.target.closest('.gal-nav, .gal-nav-s, [data-dot]')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     editing = el.dataset.edit;
     markEditing();
     parent.postMessage({ type: 'edit', group: editing }, location.origin);
@@ -227,4 +235,80 @@ if (isPreview) {
   };
   window.addEventListener('hashchange', load);
   load();
+}
+
+// ---------- Galería: carrusel ----------
+function wireCarousel(box) {
+  const track = box.querySelector('.gal-track');
+  const dots = [...box.querySelectorAll('[data-dot]')];
+  const go = (i) => track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
+  const cur = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+  box.querySelector('.prev')?.addEventListener('click', () => go(Math.max(0, cur() - 1)));
+  box.querySelector('.next')?.addEventListener('click', () => go(cur() + 1 >= dots.length ? 0 : cur() + 1));
+  dots.forEach((d) => d.addEventListener('click', () => go(+d.dataset.dot)));
+  track.addEventListener('scroll', () => { const i = cur(); dots.forEach((d, k) => d.classList.toggle('on', k === i)); }, { passive: true });
+}
+
+// ---------- Galería: tarjetas para deslizar (como Tinder) ----------
+function wireStack(box) {
+  const cards = [...box.querySelectorAll('.gal-card')];
+  const count = box.querySelector('.gal-count');
+  let order = cards.map((_, i) => i); // order[0] es la tarjeta de arriba
+  let seen = 0;
+  const layout = () => {
+    order.forEach((ci, k) => {
+      const c = cards[ci];
+      c.style.zIndex = String(cards.length - k);
+      c.style.transform = k < 3 ? `translateY(${k * 10}px) scale(${1 - k * 0.05}) rotate(${k ? (k % 2 ? 2.5 : -2.5) : 0}deg)` : 'translateY(20px) scale(.9)';
+      c.style.opacity = k < 3 ? '1' : '0';
+      c.classList.toggle('top', k === 0);
+    });
+    if (count) count.textContent = `${(seen % cards.length) + 1} / ${cards.length}`;
+  };
+  const fly = (dir) => {
+    if (cards.length < 2) return;
+    const top = cards[order[0]];
+    top.style.transition = 'transform .35s ease, opacity .35s ease';
+    top.style.transform = `translateX(${dir * 130}%) rotate(${dir * 22}deg)`;
+    top.style.opacity = '0';
+    setTimeout(() => {
+      order = [...order.slice(1), order[0]];
+      seen++;
+      top.style.transition = 'none';
+      layout();
+      requestAnimationFrame(() => { top.style.transition = ''; });
+    }, 300);
+  };
+  const back = () => {
+    if (cards.length < 2) return;
+    order = [order.at(-1), ...order.slice(0, -1)];
+    seen = (seen - 1 + cards.length) % cards.length;
+    layout();
+  };
+  box.querySelector('.next')?.addEventListener('click', () => fly(1));
+  box.querySelector('.prev')?.addEventListener('click', back);
+  // Arrastrar con el dedo o el mouse
+  let drag = null;
+  box.querySelector('.gal-cards').addEventListener('pointerdown', (e) => {
+    const c = e.target.closest('.gal-card.top');
+    if (!c || cards.length < 2) return;
+    drag = { c, x: e.clientX, dx: 0 };
+    c.setPointerCapture(e.pointerId);
+    c.style.transition = 'none';
+  });
+  box.querySelector('.gal-cards').addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    drag.dx = e.clientX - drag.x;
+    drag.c.style.transform = `translateX(${drag.dx}px) rotate(${drag.dx / 18}deg)`;
+  });
+  const end = () => {
+    if (!drag) return;
+    const { c, dx } = drag;
+    drag = null;
+    c.style.transition = '';
+    if (Math.abs(dx) > 80) fly(dx > 0 ? 1 : -1); else layout();
+  };
+  box.querySelector('.gal-cards').addEventListener('pointerup', end);
+  box.querySelector('.gal-cards').addEventListener('pointercancel', end);
+  layout();
 }

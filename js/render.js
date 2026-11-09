@@ -2,6 +2,7 @@
 import { cornerSVG, dividerSVG, fontsHref, EVENT_TYPES, sanitizeTheme, FONT_SCALE, RSVP_FIELDS, defaultRsvpFields, sectionOrder } from './templates.js';
 import { ti, fmtDateL, fmtTimeL } from './i18n.js';
 import { spotifyEmbed, creditLink } from './media.js';
+import { icon } from './icons.js';
 
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -80,7 +81,7 @@ export function ensureFonts(theme, doc = document) {
   if (href && link.getAttribute('href') !== href) link.setAttribute('href', href);
 }
 
-const icon = {
+const SEC_ICON = {
   pin: '<svg viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>',
   cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -93,15 +94,46 @@ const icon = {
 // Qué grupo del editor corresponde a cada parte (para editar tocando la vista previa)
 const EDIT_GROUP = { playlist: 'playlist', countdown: 'evento', places: 'lugares', itin: 'itinerario', dress: 'vestimenta', gifts: 'regalos', gallery: 'galeria', rsvp: 'rsvp' };
 
+// Títulos por defecto de cada sección (el anfitrión los puede cambiar o quitar)
+export const DEFAULT_TITLES = { countdown: 'Faltan', places: 'Dónde', itin: 'Itinerario', dress: 'Código de vestimenta', gifts: 'Regalos', gallery: 'Galería', playlist: 'Nuestra playlist', rsvp: 'Confirma tu asistencia' };
+export const GALLERY_MAX = 10;
+
+let CUR = null; // invitación que se está dibujando (para títulos personalizados)
 function section(id, title, body, ic) {
-  return `<section class="sec reveal" id="sec-${id}" data-edit="${EDIT_GROUP[id] || 'evento'}">
-    ${ic ? `<div class="sec-icon">${icon[ic]}</div>` : ''}
-    <h2 class="sec-title">${esc(title)}</h2>
+  const custom = String(CUR?.titles?.[id] || '').trim().slice(0, 60);
+  const hide = !!CUR?.hideTitle?.[id];
+  return `<section class="sec reveal${hide ? ' no-head' : ''}" id="sec-${id}" data-edit="${EDIT_GROUP[id] || 'evento'}">
+    ${!hide && ic ? `<div class="sec-icon">${SEC_ICON[ic]}</div>` : ''}
+    ${hide ? '' : `<h2 class="sec-title">${esc(custom || title)}</h2>`}
     ${body}
   </section>`;
 }
 
+// Galería: cuadrícula, carrusel o tarjetas para deslizar
+function galleryHTML(imgs, style, tr) {
+  if (style === 'carousel') {
+    return `<div class="gal-carousel" data-gal="carousel">
+      <div class="gal-track">${imgs.map((u, i) => `<div class="gal-slide"><img src="${esc(u)}" alt="" loading="${i ? 'lazy' : 'eager'}" draggable="false"></div>`).join('')}</div>
+      ${imgs.length > 1 ? `<button class="gal-nav prev" type="button" aria-label="${tr('Anterior')}">${icon('chevronLeft', { size: 22 })}</button>
+      <button class="gal-nav next" type="button" aria-label="${tr('Siguiente')}">${icon('chevronRight', { size: 22 })}</button>
+      <div class="gal-dots">${imgs.map((_, i) => `<button type="button" class="${i ? '' : 'on'}" data-dot="${i}" aria-label="${i + 1}"></button>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  if (style === 'stack') {
+    return `<div class="gal-stack" data-gal="stack">
+      <div class="gal-cards">${imgs.map((u) => `<div class="gal-card"><img src="${esc(u)}" alt="" draggable="false"></div>`).join('')}</div>
+      ${imgs.length > 1 ? `<div class="gal-stack-ui">
+        <button class="gal-nav-s prev" type="button" aria-label="${tr('Anterior')}">${icon('chevronLeft', { size: 20 })}</button>
+        <span class="gal-count">1 / ${imgs.length}</span>
+        <button class="gal-nav-s next" type="button" aria-label="${tr('Siguiente')}">${icon('chevronRight', { size: 20 })}</button>
+      </div><p class="gal-hint">${tr('Desliza la foto')}</p>` : ''}
+    </div>`;
+  }
+  return `<div class="gallery">${imgs.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>`;
+}
+
 export function renderInvitation(inv, guest = {}) {
+  CUR = inv;
   const t = sanitizeTheme(inv.theme), ev = inv.ev || {}, show = inv.show || {};
   const L = inv.lang === 'en' ? 'en' : 'es';
   const tr = (s, v) => ti(L, s, v);
@@ -183,8 +215,8 @@ export function renderInvitation(inv, guest = {}) {
   }
 
   if (show.gallery && inv.gallery?.length) {
-    const imgs = inv.gallery.map((u) => safeUrl(u, { image: true })).filter(Boolean);
-    if (imgs.length) S.gallery = section('gallery', tr('Galería'), `<div class="gallery">${imgs.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>`, 'heart');
+    const imgs = inv.gallery.map((u) => safeUrl(u, { image: true })).filter(Boolean).slice(0, GALLERY_MAX);
+    if (imgs.length) S.gallery = section('gallery', tr('Galería'), galleryHTML(imgs, inv.galleryStyle, tr), 'heart');
   }
 
   if (show.playlist && inv.spotify) {
@@ -215,7 +247,7 @@ export function renderInvitation(inv, guest = {}) {
   const seen = new Set();
   const credits = usedMedia.map((u) => inv.credits?.[u]).filter((c) => c && c.id && !seen.has(c.id) && seen.add(c.id));
   const creditsHtml = credits.length
-    ? `<p class="credits">${credits.map((c) => `${c.kind === 'audio' ? '♪' : '📷'} <a href="${esc(creditLink(c))}" target="_blank" rel="noopener">${esc(c.title || c.by)}${c.title ? ' · ' + esc(c.by) : ''}</a> (${esc(c.lic)})`).join(' · ')}</p>`
+    ? `<p class="credits">${credits.map((c) => `${icon(c.kind === 'audio' ? 'music' : 'camera', { size: 12 })} <a href="${esc(creditLink(c))}" target="_blank" rel="noopener">${esc(c.title || c.by)}${c.title ? ' · ' + esc(c.by) : ''}</a> (${esc(c.lic)})`).join(' · ')}</p>`
     : '';
   parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p>${creditsHtml}<p class="made">${tr('Hecho con')} <a href="./" target="_blank">CoroLink</a> · ${tr('gratis')}</p></footer>`);
 

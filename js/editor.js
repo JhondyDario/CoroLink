@@ -1,9 +1,10 @@
 import { encodeData, decodeData, buildHash } from './codec.js';
 import { TEMPLATES, FONTS, DECOS, LAYOUTS, PATTERNS, EVENT_TYPES, CATEGORIES, categoryOf, RSVP_FIELDS, defaultRsvpFields, MAX_PEOPLE, MIN_GUESTS, getTemplate, sectionOrder, newInvitation, applyTheme, fontsHref, sanitizeTheme } from './templates.js';
-import { esc, safeUrl, waPhone } from './render.js';
+import { esc, safeUrl, waPhone, DEFAULT_TITLES, GALLERY_MAX } from './render.js';
 import { tplCard, filterChips, filterTemplates } from './ui.js';
-import { t as tr, lang, startI18n } from './i18n.js';
+import { t as tr, ti, lang, startI18n } from './i18n.js';
 import { mountChrome } from './chrome.js';
+import { icon, hydrateIcons } from './icons.js';
 import { searchImages, searchAudio, spotifyEmbed, EVENT_QUERY, EVENT_MUSIC, creditLink } from './media.js';
 import { getDraft, saveDraft, updateDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate, listFavs, toggleFav, duplicateDraft, templateFromInvitation } from './store.js';
 
@@ -11,6 +12,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
+hydrateIcons();
 startI18n();
 mountChrome(document.querySelector('.top-actions'), { star: false });
 
@@ -64,6 +66,7 @@ const persist = debounce(() => {
 function persistNow() { updateDraft(draft.id, (d) => { d.inv = inv; d.msg = draft.msg; }); }
 
 function changed({ rerenderForm = false } = {}) {
+  syncBinds();
   saveState.textContent = 'Guardando…';
   saveState.classList.remove('err');
   persist();
@@ -216,15 +219,22 @@ $('#font-body').innerHTML = fontOpts;
 $('#ev-type').innerHTML = Object.entries(EVENT_TYPES).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 
 // ---------- Inputs con data-bind ----------
-function fillForm() {
+// Algunos campos están dos veces (pestaña Diseño y panel general): los mantenemos iguales
+function syncBinds() {
   $$('[data-bind]').forEach((el) => {
+    if (document.activeElement === el) return;
     const v = get(el.dataset.bind);
     if (el.type === 'checkbox') el.checked = v !== false;
-    else if (document.activeElement !== el) el.value = v ?? '';
+    else if (el.value !== String(v ?? '')) el.value = v ?? '';
   });
   chips('#layout-chips', LAYOUTS, 'theme.layout');
   chips('#deco-chips', DECOS, 'theme.deco');
   chips('#pattern-chips', PATTERNS, 'theme.pattern');
+}
+function fillForm() {
+  syncBinds();
+  fillHeads();
+  renderGalleryStyle();
   renderLists();
   renderGallery();
   renderToggles();
@@ -258,8 +268,8 @@ function renderLists() {
     $(`#${key}-list`).innerHTML = arr.map((item, i) => `<div class="item" data-list="${key}" data-i="${i}">
       ${L.fields.map(([f, ph, type]) => `<input ${type ? `type="${type}"` : ''} data-f="${f}" placeholder="${ph}" value="${esc(item[f] || '')}" aria-label="${ph}">`).join('')}
       <div class="item-tools">
-        <button type="button" data-move="-1" aria-label="Subir">↑</button>
-        <button type="button" data-move="1" aria-label="Bajar">↓</button>
+        <button type="button" data-move="-1" aria-label="Subir">${icon('arrowUp', { size: 15 })}</button>
+        <button type="button" data-move="1" aria-label="Bajar">${icon('arrowDown', { size: 15 })}</button>
         <button type="button" data-rm aria-label="Eliminar">×</button>
       </div></div>`).join('');
   }
@@ -327,6 +337,7 @@ $('#cover-clear').addEventListener('click', () => { inv.cover = ''; fillCover();
 $('#music-clear').addEventListener('click', () => { inv.music = ''; stopPreview(); renderMediaCurrent(); changed(); });
 
 function renderGallery() {
+  renderGalleryStyle();
   $('#gallery-list').innerHTML = (inv.gallery || []).map((u, i) => `<div class="thumb"><img src="${esc(safeUrl(u, { image: true }))}" alt=""><button type="button" data-g="${i}" aria-label="Quitar">×</button></div>`).join('');
 }
 $('#gallery-list').addEventListener('click', (e) => {
@@ -339,7 +350,8 @@ $('#gallery-list').addEventListener('click', (e) => {
 $('#gallery-add').addEventListener('click', () => {
   const u = safeUrl($('#gallery-url').value);
   if (!u) return toast('Pega un link que empiece con https://');
-  (inv.gallery ??= []).push(u);
+  if ((inv.gallery ??= []).length >= GALLERY_MAX) return toast(tr('Máximo {max} fotos en la galería', { max: GALLERY_MAX }));
+  inv.gallery.push(u);
   inv.show.gallery = true;
   $('#gallery-url').value = '';
   renderGallery();
@@ -347,10 +359,12 @@ $('#gallery-add').addEventListener('click', () => {
   changed();
 });
 $('#gallery-file').addEventListener('change', async (e) => {
-  const files = [...e.target.files].slice(0, 6);
+  const room = GALLERY_MAX - (inv.gallery?.length || 0);
+  if (room <= 0) { e.target.value = ''; return toast(tr('Máximo {max} fotos en la galería', { max: GALLERY_MAX })); }
+  const files = [...e.target.files].slice(0, room);
   e.target.value = '';
   for (const f of files) (inv.gallery ??= []).push(await compressImage(f, 480, 0.55));
-  if (files.length) { inv.show.gallery = true; renderGallery(); renderToggles(); changed(); toast(`${files.length} foto(s) agregada(s)`); }
+  if (files.length) { inv.show.gallery = true; renderGallery(); renderToggles(); changed(); toast(tr('{n} foto(s) agregada(s)', { n: files.length })); }
 });
 // Campo de portada: un link, o "(foto subida)" si la foto va dentro del link
 const coverInput = $('#cover-url');
@@ -376,7 +390,7 @@ function renderToggles() {
     <li class="sort-item" data-k="${k}">
       <span class="grip" aria-label="${tr('Arrastrar para mover')}" title="${tr('Arrastrar para mover')}">⠿</span>
       <label class="switch"><input type="checkbox" data-s="${k}" ${isOn(k) ? 'checked' : ''}><span></span>${tr(SECTIONS[k])}</label>
-      <span class="sort-btns"><button type="button" data-mv="-1" aria-label="${tr('Subir')}">↑</button><button type="button" data-mv="1" aria-label="${tr('Bajar')}">↓</button></span>
+      <span class="sort-btns"><button type="button" data-mv="-1" aria-label="${tr('Subir')}">${icon('arrowUp', { size: 15 })}</button><button type="button" data-mv="1" aria-label="${tr('Bajar')}">${icon('arrowDown', { size: 15 })}</button></span>
     </li>`).join('')}</ol>
     <p class="hint">${tr('La portada siempre va primero.')}</p>
     <label class="switch row"><input type="checkbox" data-s="cover" ${inv.show.cover !== false && inv.cover ? 'checked' : ''}><span></span>${tr('Foto de portada')}</label>
@@ -588,7 +602,8 @@ $('#open-preview').addEventListener('click', () => document.body.classList.add('
 $('#close-preview').addEventListener('click', () => document.body.classList.remove('show-preview'));
 
 // ---------- Panel derecho: editar tocando la vista previa ----------
-// En PC los campos de la sección tocada se mudan a un panel a la derecha.
+// En PC el panel está siempre: muestra lo general de la invitación y, al tocar
+// una parte de la vista previa, los campos de esa sección se mudan aquí.
 // En pantallas más pequeñas te llevamos a esa sección de "Contenido".
 const GROUP_TITLES = { evento: 'Evento', portada: 'Foto de portada', lugares: 'Lugares', itinerario: 'Itinerario', vestimenta: 'Vestimenta', regalos: 'Regalos', galeria: 'Galería', musica: 'Música de fondo', playlist: 'Playlist de Spotify', rsvp: 'Confirmación (RSVP)' };
 const GROUP_SHOW = { portada: 'cover', playlist: 'playlist', lugares: 'places', itinerario: 'itin', vestimenta: 'dress', regalos: 'gifts', galeria: 'gallery', rsvp: 'rsvp' };
@@ -598,14 +613,24 @@ let inspecting = null;
 function postEditing(group, scroll = false) {
   if (previewReady) frame.contentWindow.postMessage({ type: 'editing', group, scroll }, location.origin);
 }
+function showGeneral(on) {
+  $('#insp-general').hidden = !on;
+  $('#insp-body').hidden = on;
+  $('#insp-foot').hidden = on;
+  $('#insp-close').hidden = on;
+  if (on) $('#insp-title').textContent = tr('Toda la invitación');
+}
+function syncInspector() {
+  $('#inspector').hidden = !wide.matches;
+  document.body.classList.toggle('inspecting', wide.matches);
+}
 function closeInspector() {
   if (!inspecting) return;
   const { details, nodes } = inspecting;
   nodes.forEach((n) => details.appendChild(n));
   details.classList.remove('moved');
   inspecting = null;
-  $('#inspector').hidden = true;
-  document.body.classList.remove('inspecting');
+  showGeneral(true);
   postEditing('');
 }
 function openInspector(group) {
@@ -615,7 +640,7 @@ function openInspector(group) {
   if (!wide.matches) {
     document.body.classList.remove('show-preview');
     openTab('contenido');
-    $$('#tab-contenido details').forEach((d) => (d.open = d === details));
+    $$('#tab-contenido details[data-group]').forEach((d) => (d.open = d === details));
     details.scrollIntoView({ block: 'start' });
     details.classList.add('flash');
     setTimeout(() => details.classList.remove('flash'), 1200);
@@ -625,22 +650,22 @@ function openInspector(group) {
   nodes.forEach((n) => $('#insp-body').appendChild(n));
   details.classList.add('moved');
   inspecting = { group, details, nodes };
-  $('#insp-title').textContent = GROUP_TITLES[group] || 'Editar';
+  showGeneral(false);
+  $('#insp-title').textContent = tr(GROUP_TITLES[group] || 'Editar');
   const key = GROUP_SHOW[group];
-  $('#insp-show-wrap').hidden = !key;
+  $('#insp-foot').hidden = !key;
   if (key) $('#insp-show').checked = key === 'cover' ? inv.show.cover !== false && !!inv.cover : !!inv.show[key];
-  $('#inspector').hidden = false;
-  document.body.classList.add('inspecting');
   $('#insp-body').scrollTop = 0;
   postEditing(group);
-  $('#insp-body').querySelector('input:not([type=file]), textarea, select')?.focus({ preventScroll: true });
+  $('#insp-body').querySelector('input:not([type=file]):not([type=checkbox]), textarea, select')?.focus({ preventScroll: true });
 }
 window.addEventListener('message', (e) => {
   if (e.origin === location.origin && e.data?.type === 'edit') openInspector(e.data.group);
 });
 $('#insp-close').addEventListener('click', closeInspector);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && inspecting) closeInspector(); });
-wide.addEventListener('change', () => { if (!wide.matches) closeInspector(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && inspecting && !$('#media-dlg').open) closeInspector(); });
+wide.addEventListener('change', () => { if (!wide.matches) closeInspector(); syncInspector(); });
+syncInspector();
 $('#insp-show').addEventListener('change', (e) => {
   const key = GROUP_SHOW[inspecting?.group];
   if (!key) return;
@@ -656,6 +681,62 @@ $$('#tab-contenido details[data-group]').forEach((d) => d.addEventListener('togg
   if (d.classList.contains('moved')) closeInspector();
   postEditing(d.dataset.group, true);
 }));
+
+// Opciones de los selectores del panel general
+$$('.opt-layout').forEach((s) => (s.innerHTML = Object.entries(LAYOUTS).map(([v, l]) => `<option value="${v}">${tr(l)}</option>`).join('')));
+$$('.opt-deco').forEach((s) => (s.innerHTML = Object.entries(DECOS).map(([v, d]) => `<option value="${v}">${tr(d.name)}</option>`).join('')));
+$$('.opt-pattern').forEach((s) => (s.innerHTML = Object.entries(PATTERNS).map(([v, l]) => `<option value="${v}">${tr(l)}</option>`).join('')));
+$$('.opt-font').forEach((s) => (s.innerHTML = fontOpts));
+
+// ---------- Encabezados de sección: cambiar el título o quitarlo ----------
+const GROUP_SECTION = { evento: 'countdown', lugares: 'places', itinerario: 'itin', vestimenta: 'dress', regalos: 'gifts', galeria: 'gallery', playlist: 'playlist', rsvp: 'rsvp' };
+inv.titles ??= {};
+inv.hideTitle ??= {};
+for (const [group, sec] of Object.entries(GROUP_SECTION)) {
+  const d = $(`details[data-group="${group}"]`);
+  if (!d) continue;
+  d.querySelector('summary').insertAdjacentHTML('afterend', `<div class="head-edit">
+    <label class="f">${tr(sec === 'countdown' ? 'Título de la cuenta regresiva' : 'Título de la sección')}<input data-head="${sec}" maxlength="60"></label>
+    <label class="switch sm"><input type="checkbox" data-showhead="${sec}"><span></span>${tr('Mostrar título')}</label>
+  </div>`);
+}
+function fillHeads() {
+  $$('[data-head]').forEach((el) => {
+    const k = el.dataset.head;
+    el.placeholder = ti(inv.lang === 'en' ? 'en' : 'es', DEFAULT_TITLES[k]);
+    if (document.activeElement !== el) el.value = inv.titles[k] || '';
+  });
+  $$('[data-showhead]').forEach((el) => (el.checked = !inv.hideTitle[el.dataset.showhead]));
+}
+document.addEventListener('input', (e) => {
+  const el = e.target.closest('[data-head]');
+  if (!el) return;
+  const v = el.value.trim();
+  if (v) inv.titles[el.dataset.head] = v; else delete inv.titles[el.dataset.head];
+  changed();
+});
+document.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-showhead]');
+  if (!el) return;
+  if (el.checked) delete inv.hideTitle[el.dataset.showhead]; else inv.hideTitle[el.dataset.showhead] = true;
+  changed();
+});
+
+// ---------- Estilo de la galería ----------
+const GAL_STYLES = { grid: 'Cuadrícula', carousel: 'Carrusel', stack: 'Tarjetas (deslizar)' };
+function renderGalleryStyle() {
+  const cur = inv.galleryStyle || 'grid';
+  $('#gal-style').innerHTML = Object.entries(GAL_STYLES).map(([v, l]) => `<button type="button" class="chip ${cur === v ? 'on' : ''}" data-gs="${v}">${tr(l)}</button>`).join('');
+  $('#gal-count').textContent = tr('{n} de {max} fotos', { n: inv.gallery?.length || 0, max: GALLERY_MAX });
+}
+$('#gal-style').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-gs]');
+  if (!b) return;
+  inv.galleryStyle = b.dataset.gs;
+  renderGalleryStyle();
+  postEditing('galeria', true);
+  changed();
+});
 
 $('#png-dl').addEventListener('click', () => {
   if (!previewReady) return;
@@ -697,11 +778,11 @@ function renderMediaCurrent() {
   const c = safeUrl(inv.cover, { image: true });
   const cc = creditOf(inv.cover);
   $('#cover-current').innerHTML = c
-    ? `<div class="mc-img" style="background-image:url('${esc(c)}')"></div><small>${cc ? `📷 ${esc(cc.by)} · ${esc(cc.lic)}` : inv.cover.startsWith('data:') ? tr('Foto subida') : tr('Imagen por link')}</small>`
+    ? `<div class="mc-img" style="background-image:url('${esc(c)}')"></div><small>${cc ? `${icon('camera', { size: 13 })} ${esc(cc.by)} · ${esc(cc.lic)}` : inv.cover.startsWith('data:') ? tr('Foto subida') : tr('Imagen por link')}</small>`
     : `<div class="mc-empty">${tr('Sin foto de portada')}</div>`;
   const m = inv.music, mc = creditOf(m);
   $('#music-current').innerHTML = m
-    ? `<div class="mc-track"><button class="btn ghost sm" type="button" data-preview="${esc(m)}" aria-label="${tr('Escuchar')}">▶</button><div><b>${esc(mc?.title || (/youtu/.test(m) ? 'YouTube' : tr('Canción por link')))}</b><small>${mc ? `${esc(mc.by)} · ${esc(mc.lic)}` : esc(m.slice(0, 50))}</small></div></div>`
+    ? `<div class="mc-track"><button class="btn ghost sm" type="button" data-preview="${esc(m)}" aria-label="${tr('Escuchar')}">${icon('play', { size: 15 })}</button><div><b>${esc(mc?.title || (/youtu/.test(m) ? 'YouTube' : tr('Canción por link')))}</b><small>${mc ? `${esc(mc.by)} · ${esc(mc.lic)}` : esc(m.slice(0, 50))}</small></div></div>`
     : `<div class="mc-empty">${tr('Sin música de fondo')}</div>`;
   if (document.activeElement !== $('#music-url')) $('#music-url').value = m && !mc ? m : '';
 }
@@ -718,7 +799,7 @@ function stopPreview() {
   previewAudio?.pause();
   previewAudio = null;
   previewUrl = '';
-  $$('[data-preview], [data-play]').forEach((b) => (b.textContent = '▶'));
+  $$('[data-preview], [data-play]').forEach((b) => (b.innerHTML = icon('play', { size: 15 })));
 }
 function togglePreview(url, btn) {
   if (previewUrl === url) return stopPreview();
@@ -726,7 +807,7 @@ function togglePreview(url, btn) {
   if (/youtu/.test(url)) { window.open(url, '_blank', 'noopener'); return; }
   previewAudio = new Audio(url);
   previewUrl = url;
-  previewAudio.play().then(() => (btn.textContent = '❚❚')).catch(() => { stopPreview(); toast('No se pudo reproducir'); });
+  previewAudio.play().then(() => (btn.innerHTML = icon('pause', { size: 15 }))).catch(() => { stopPreview(); toast('No se pudo reproducir'); });
   previewAudio.onended = stopPreview;
 }
 document.addEventListener('click', (e) => {
@@ -814,7 +895,7 @@ async function runSearch(q, more = false) {
 function renderPicker() {
   if (picker.kind === 'music') {
     $('#md-results').innerHTML = picker.items.map((r, i) => `<div class="md-track${inv.music === r.url ? ' on' : ''}">
-      <button class="btn ghost sm" type="button" data-play="${i}" aria-label="${tr('Escuchar')}">${previewUrl === r.url ? '❚❚' : '▶'}</button>
+      <button class="btn ghost sm" type="button" data-play="${i}" aria-label="${tr('Escuchar')}">${icon(previewUrl === r.url ? 'pause' : 'play', { size: 15 })}</button>
       <div class="md-tinfo"><b>${esc(r.title)}</b><small>${esc(r.by)}${r.secs ? ` · ${Math.floor(r.secs / 60)}:${String(r.secs % 60).padStart(2, '0')}` : ''} · ${esc(r.credit.lic)}</small></div>
       <button class="btn sm" type="button" data-use="${i}">${tr(inv.music === r.url ? 'Puesta' : 'Usar')}</button>
     </div>`).join('');
@@ -823,7 +904,7 @@ function renderPicker() {
   $('#md-results').innerHTML = picker.items.map((r, i) => {
     const on = picker.kind === 'cover' ? inv.cover === r.url : inv.gallery?.includes(r.url);
     return `<button type="button" class="md-img${on ? ' on' : ''}" data-i="${i}" aria-pressed="${on}" title="${esc(r.title)} · ${esc(r.credit.by)} (${esc(r.credit.lic)})">
-      <img src="${esc(r.thumb)}" alt="${esc(r.title)}" loading="lazy"><span class="md-by">${esc(r.credit.by)}</span>${on ? '<span class="md-check">✓</span>' : ''}</button>`;
+      <img src="${esc(r.thumb)}" alt="${esc(r.title)}" loading="lazy"><span class="md-by">${esc(r.credit.by)}</span>${on ? `<span class="md-check">${icon('check', { size: 15 })}</span>` : ''}</button>`;
   }).join('');
 }
 $('#md-search').addEventListener('submit', (e) => { e.preventDefault(); const q = $('#md-q').value.trim(); if (q) runSearch(q); });
@@ -863,7 +944,7 @@ $('#md-results').addEventListener('click', (e) => {
     inv.gallery ??= [];
     const at = inv.gallery.indexOf(r.url);
     if (at >= 0) inv.gallery.splice(at, 1);
-    else if (inv.gallery.length >= 12) return toast('Máximo 12 fotos en la galería');
+    else if (inv.gallery.length >= GALLERY_MAX) return toast(tr('Máximo {max} fotos en la galería', { max: GALLERY_MAX }));
     else { inv.gallery.push(r.url); inv.credits[r.url] = r.credit; inv.show.gallery = true; }
     renderGallery();
     renderPicker();
@@ -875,7 +956,7 @@ $('#md-results').addEventListener('click', (e) => {
 function renderSpotifyStatus() {
   const v = inv.spotify?.trim();
   const sp = spotifyEmbed(v);
-  $('#spotify-status').textContent = !v ? '' : sp ? tr('✓ Link de Spotify válido. Ya aparece en la invitación.') : tr('Ese link no parece de Spotify. Cópialo desde Compartir › Copiar enlace.');
+  $('#spotify-status').textContent = !v ? '' : sp ? tr('Link de Spotify válido. Ya aparece en la invitación.') : tr('Ese link no parece de Spotify. Cópialo desde Compartir › Copiar enlace.');
   $('#spotify-status').classList.toggle('ok', !!sp);
 }
 $('#spotify-url').addEventListener('input', (e) => {

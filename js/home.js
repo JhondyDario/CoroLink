@@ -3,11 +3,13 @@ import { encodeData, buildHash } from './codec.js';
 import { esc, parseDate, fmtDate } from './render.js';
 import { tplCard, filterChips, filterTemplates } from './ui.js';
 import { startI18n, t as tr, lang } from './i18n.js';
+import { hydrateIcons } from './icons.js';
 import { mountChrome, loadStars, REPO, ISSUE_BUG, ISSUE_IDEA } from './chrome.js';
 import { listDrafts, deleteDraft, getDraft, listMyTemplates, deleteMyTemplate, listFavs, toggleFav, duplicateDraft, templateFromInvitation } from './store.js';
 
 const $ = (s) => document.querySelector(s);
 
+hydrateIcons();
 startI18n();
 mountChrome($('#nav-actions'), { feedback: false });
 $('#foot-star').href = REPO;

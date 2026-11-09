@@ -254,15 +254,23 @@ details.flash { animation: flash 1.2s ease; }
 .nav-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .site-nav .btn { margin-left: 0; }
 .top-actions { align-items: center; }
-.icon-btn { width: 38px; padding: 0; }
+.btn.icon-btn { width: 38px; min-width: 38px; padding: 0; }
+.ic { flex: none; display: inline-block; vertical-align: -3px; max-width: none; }
+.btn .ic { vertical-align: 0; }
+.gh-star { color: #e3a008; }
+/* Interruptor de modo oscuro */
+.theme-switch { border: 0; background: none; padding: 4px; cursor: pointer; border-radius: 999px; display: inline-flex; }
+.theme-switch:focus-visible { outline: 3px solid var(--brand-2); outline-offset: 2px; }
+.ts-track { position: relative; width: 52px; height: 28px; border-radius: 999px; background: var(--switch-off); display: flex; align-items: center; justify-content: space-between; padding: 0 7px; color: var(--ink-2); transition: background .2s; }
+.ts-thumb { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .2s; }
+.theme-switch[aria-checked="true"] .ts-track { background: var(--brand-2); color: #fff; }
+.theme-switch[aria-checked="true"] .ts-thumb { transform: translateX(24px); }
+.ts-sun, .ts-moon { position: relative; z-index: 1; }
 .lang-btn { min-width: 44px; padding: 7px 10px; font-weight: 700; letter-spacing: .04em; }
 .gh-btn svg { flex: none; }
 .gh-count { background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700; }
 .btn:not(.ghost) .gh-count { background: rgba(255,255,255,.18); border-color: transparent; color: inherit; }
 .fb-menu { position: relative; }
-.fb-menu > summary { list-style: none; cursor: pointer; width: 38px; padding: 0; }
-.fb-menu > summary::-webkit-details-marker { display: none; }
-.fb-menu > summary::after { content: none; }
 .fb-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 80; min-width: 240px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; display: grid; }
 .fb-pop a { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 14px; color: var(--ink); }
 .fb-pop a:hover, .fb-pop a:focus-visible { background: var(--surface-2); }
@@ -355,3 +363,23 @@ details.sub[open] > summary::after { content: '⌄'; }
 .md-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 16px 14px; border-top: 1px solid var(--line); }
 .md-foot .hint { margin: 0; flex: 1; }
 @media (max-width: 600px) { .md-results.grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Íconos en la portada y botones */
+.feat-ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 10px; color: var(--brand-2); background: var(--tint-2); }
+.badges span { display: inline-flex; align-items: center; gap: 6px; }
+.badges .ic { color: var(--ok); }
+.ok-ic { color: var(--ok); } .bad-ic { color: var(--pill-bad); }
+.fav .ic { width: 17px; height: 17px; }
+.fav.on { color: #e3a008; }
+.chip .ic { vertical-align: -2px; }
+.md-check .ic { width: 15px; height: 15px; }
+.item-tools button, .sort-btns button { display: inline-grid; place-items: center; }
+
+/* Encabezados editables y panel general */
+.head-edit { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 10px 12px; margin-bottom: 12px; border-radius: 12px; background: var(--surface-2); }
+.head-edit .f { margin: 0; }
+.head-edit .switch { margin: 0 0 10px; white-space: nowrap; }
+.insp-tip { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--tint-2); color: var(--ink) !important; }
+.insp-tip .ic { margin-top: 2px; color: var(--brand-2); }
+#insp-general .colors label span { font-size: 10px; }
+#insp-general select { padding: 9px 10px; font-size: 14px; }

@@ -1,29 +1,30 @@
 // Botones comunes de la barra: idioma, modo oscuro, GitHub (con estrellas) y reportar/sugerir.
 import { t, langSwitch } from './i18n.js';
+import { icon } from './icons.js';
 
 export const REPO = 'https://github.com/JhondyDario/CoroLink';
 export const ISSUE_BUG = `${REPO}/issues/new?template=bug_report.yml`;
 export const ISSUE_IDEA = `${REPO}/issues/new?template=feature_request.yml`;
 
-// ---------- Modo oscuro ----------
+// ---------- Modo oscuro (interruptor) ----------
 const THEME_KEY = 'corolink.theme';
 const darkNow = () => {
   const forced = document.documentElement.dataset.theme;
   return forced ? forced === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
 };
-export function toggleTheme() {
-  const next = darkNow() ? 'light' : 'dark';
-  document.documentElement.dataset.theme = next;
-  try { localStorage.setItem(THEME_KEY, next); } catch { /* sin almacenamiento */ }
-  syncThemeButtons();
+export function setDark(on) {
+  document.documentElement.dataset.theme = on ? 'dark' : 'light';
+  try { localStorage.setItem(THEME_KEY, on ? 'dark' : 'light'); } catch { /* sin almacenamiento */ }
+  syncThemeSwitches();
 }
-function syncThemeButtons() {
+function syncThemeSwitches() {
   const dark = darkNow();
-  document.querySelectorAll('[data-theme-btn]').forEach((b) => {
-    b.textContent = dark ? '☀️' : '🌙';
-    b.title = t(dark ? 'Modo claro' : 'Modo oscuro');
-    b.setAttribute('aria-label', b.title);
-  });
+  document.querySelectorAll('[data-theme-switch]').forEach((b) => b.setAttribute('aria-checked', String(dark)));
+}
+function themeSwitch() {
+  return `<button class="theme-switch" type="button" role="switch" data-theme-switch aria-checked="false" title="${t('Modo oscuro')}" aria-label="${t('Modo oscuro')}">
+    <span class="ts-track">${icon('sun', { size: 13, cls: 'ts-sun' })}${icon('moon', { size: 13, cls: 'ts-moon' })}<span class="ts-thumb"></span></span>
+  </button>`;
 }
 
 // ---------- Estrellas de GitHub (se guardan un rato para no pedirlas en cada página) ----------
@@ -45,37 +46,50 @@ async function loadStars() {
   if (typeof n === 'number') els.forEach((el) => { el.textContent = n; el.hidden = false; });
 }
 
-const ghIcon = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>';
-
-// Botón "⭐ Danos una estrella" con el contador
+// Botón "Danos una estrella" con el contador
 export function starButton({ compact = false } = {}) {
   return `<a class="btn ghost sm gh-btn" href="${REPO}" target="_blank" rel="noopener" title="${t('Código abierto en GitHub')}">
-    ${ghIcon}<span class="${compact ? 'gh-label-c' : ''}">⭐ ${t('Danos una estrella')}</span><span class="gh-count" data-stars hidden></span></a>`;
+    ${icon('github', { size: 16 })}<span class="${compact ? 'gh-label-c' : ''}">${t('Danos una estrella')}</span>${icon('star', { size: 14, cls: 'gh-star' })}<span class="gh-count" data-stars hidden></span></a>`;
 }
 
-// Menú de reportar / sugerir
+// Menú de reportar / sugerir (botón + ventanita, sin <details> para que se alinee bien)
 export function feedbackButton() {
-  return `<details class="fb-menu">
-    <summary class="btn ghost sm" title="${t('¿Problema o idea?')}" aria-label="${t('¿Problema o idea?')}">💬</summary>
-    <div class="fb-pop">
-      <a href="${ISSUE_BUG}" target="_blank" rel="noopener">🐞 ${t('Reportar un problema')}</a>
-      <a href="${ISSUE_IDEA}" target="_blank" rel="noopener">💡 ${t('Sugerir una mejora')}</a>
-      <a href="${REPO}" target="_blank" rel="noopener">${ghIcon} ${t('Código abierto en GitHub')}</a>
+  return `<div class="fb-menu">
+    <button class="btn ghost sm icon-btn" type="button" data-fb-toggle aria-haspopup="true" aria-expanded="false" title="${t('¿Problema o idea?')}" aria-label="${t('¿Problema o idea?')}">${icon('message', { size: 17 })}</button>
+    <div class="fb-pop" role="menu" hidden>
+      <a role="menuitem" href="${ISSUE_BUG}" target="_blank" rel="noopener">${icon('bug', { size: 16 })} ${t('Reportar un problema')}</a>
+      <a role="menuitem" href="${ISSUE_IDEA}" target="_blank" rel="noopener">${icon('bulb', { size: 16 })} ${t('Sugerir una mejora')}</a>
+      <a role="menuitem" href="${REPO}" target="_blank" rel="noopener">${icon('github', { size: 16 })} ${t('Código abierto en GitHub')}</a>
     </div>
-  </details>`;
+  </div>`;
 }
 
 // Pone los botones en un contenedor (al principio)
 export function mountChrome(container, { star = true, feedback = true } = {}) {
   if (!container) return;
-  const html = `${star ? starButton({ compact: true }) : ''}${feedback ? feedbackButton() : ''}${langSwitch()}<button class="btn ghost sm icon-btn" type="button" data-theme-btn></button>`;
-  container.insertAdjacentHTML('afterbegin', html);
-  container.addEventListener('click', (e) => { if (e.target.closest('[data-theme-btn]')) toggleTheme(); });
-  syncThemeButtons();
+  container.insertAdjacentHTML('afterbegin', `${star ? starButton({ compact: true }) : ''}${feedback ? feedbackButton() : ''}${langSwitch()}${themeSwitch()}`);
+  syncThemeSwitches();
   loadStars();
-  // Cerrar el menú de reportar al tocar fuera
-  document.addEventListener('click', (e) => {
-    document.querySelectorAll('.fb-menu[open]').forEach((d) => { if (!d.contains(e.target)) d.open = false; });
-  });
 }
-export { loadStars, syncThemeButtons };
+
+// Un solo manejador para toda la página
+document.addEventListener('click', (e) => {
+  const sw = e.target.closest('[data-theme-switch]');
+  if (sw) { setDark(!darkNow()); return; }
+  const fb = e.target.closest('[data-fb-toggle]');
+  document.querySelectorAll('.fb-menu').forEach((m) => {
+    const open = fb && m.contains(fb) ? m.querySelector('.fb-pop').hidden : false;
+    m.querySelector('.fb-pop').hidden = !open;
+    m.querySelector('[data-fb-toggle]').setAttribute('aria-expanded', String(open));
+  });
+});
+// Tocar dentro de la vista previa (un iframe) no llega aquí, pero sí quita el foco de esta página
+window.addEventListener('blur', () => {
+  document.querySelectorAll('.fb-pop:not([hidden])').forEach((p) => { p.hidden = true; p.parentElement.querySelector('[data-fb-toggle]').setAttribute('aria-expanded', 'false'); });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.fb-pop:not([hidden])').forEach((p) => { p.hidden = true; p.parentElement.querySelector('[data-fb-toggle]').focus(); });
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncThemeSwitches);
+export { loadStars };
