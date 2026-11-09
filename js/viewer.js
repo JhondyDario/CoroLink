@@ -1,5 +1,5 @@
 import { decodeData, parseHash } from './codec.js';
-import { renderInvitation, envelopeHTML, applyThemeVars, ensureFonts, calendarLinks, waPhone } from './render.js';
+import { renderInvitation, envelopeHTML, applyThemeVars, ensureFonts, calendarLinks, waPhone, rsvpFields } from './render.js';
 
 const app = document.getElementById('app');
 const isPreview = new URLSearchParams(location.search).has('preview');
@@ -73,20 +73,36 @@ function wire(inv, guest) {
   // RSVP
   const form = document.getElementById('rsvp-form');
   if (form) {
-    const people = form.querySelector('.people');
-    form.addEventListener('change', () => (people.style.display = form.go.value === 'si' ? '' : 'none'));
+    const ifYes = form.querySelector('.if-yes');
+    form.addEventListener('change', () => { if (ifYes) ifYes.hidden = form.go.value !== 'si'; });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      const yes = form.go.value === 'si';
+      // Validamos sólo lo visible (si dice que no va, no pedimos acompañantes, etc.)
+      for (const el of form.querySelectorAll('input, textarea')) {
+        if (!yes && ifYes?.contains(el)) continue;
+        if (!el.checkValidity()) { el.reportValidity(); return; }
+      }
       const f = new FormData(form);
-      const yes = f.get('go') === 'si';
-      const evName = [inv.ev.pre, inv.ev.names].filter(Boolean).join(' de ');
-      let text = yes
-        ? `¡Hola! Soy *${f.get('name')}* ✅ Confirmo mi asistencia a ${evName}. Seremos *${f.get('n')}* persona(s).`
-        : `¡Hola! Soy *${f.get('name')}*. Lamentablemente no podré asistir a ${evName} 😔`;
-      if (f.get('msg')) text += `\n\n💬 ${f.get('msg')}`;
-      const phone = waPhone(inv.rsvp?.phone);
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-      if (isPreview) { form.querySelector('button').textContent = 'Vista previa: aquí se abriría WhatsApp'; return; }
+      const val = (k) => String(f.get(k) || '').trim();
+      const F = rsvpFields(inv);
+      const n = yes ? (F.count !== 'off' ? Math.max(1, parseInt(val('n'), 10) || 1) : guest.passes || 1) : 0;
+      const evName = `*${inv.ev.names || inv.ev.pre || 'tu evento'}*`;
+      const lines = [yes
+        ? `¡Hola! Soy *${val('name')}* ✅ Confirmo mi asistencia a ${evName}.`
+        : `¡Hola! Soy *${val('name')}*. Lamentablemente no podré asistir a ${evName} 😔`];
+      if (yes && F.count !== 'off') lines.push(`👥 Personas: *${n}*`);
+      if (yes && val('companions')) lines.push(`👫 Acompañantes: ${val('companions')}`);
+      if (val('phone')) lines.push(`📞 Teléfono: ${val('phone')}`);
+      if (yes && val('diet')) lines.push(`🍽️ Comida: ${val('diet')}`);
+      if (yes && val('song')) lines.push(`🎵 Canción: ${val('song')}`);
+      if (yes && val('custom')) lines.push(`❓ ${F.customQ}: ${val('custom')}`);
+      if (val('msg')) lines.push(`💬 ${val('msg')}`);
+      // Código para que el gestor de invitados lo lea solo
+      lines.push('', `CV|${guest.gid || '0'}|${yes ? 'si' : 'no'}|${n}`);
+      const text = lines.join('\n');
+      const url = `https://wa.me/${waPhone(inv.rsvp?.phone)}?text=${encodeURIComponent(text)}`;
+      if (isPreview) { form.querySelector('button[type=submit]').textContent = 'Vista previa: aquí se abriría WhatsApp'; return; }
       window.open(url, '_blank', 'noopener');
       form.innerHTML = `<p class="thanks">${yes ? '¡Gracias por confirmar! 🎉' : 'Gracias por avisar 💛'}</p><p class="muted">Si WhatsApp no se abrió, <a href="${url}" target="_blank" rel="noopener">toca aquí</a>.</p>`;
     });
@@ -170,14 +186,14 @@ if (isPreview) {
   parent.postMessage({ type: 'preview-ready' }, location.origin);
 } else {
   const load = async () => {
-    const { d, to, passes } = parseHash();
+    const { d, to, passes, gid, table } = parseHash();
     if (!d) {
       app.innerHTML = `<div class="empty"><h1>Convida</h1><p>Este link no tiene una invitación.</p><a class="btn" href="crear.html">Crear una gratis</a></div>`;
       return;
     }
     try {
       const inv = await decodeData(d);
-      render(inv, { name: to, passes }, { envelope: inv.theme?.envelope !== false });
+      render(inv, { name: to, passes, gid, table }, { envelope: inv.theme?.envelope !== false });
     } catch (err) {
       console.error(err);
       app.innerHTML = `<div class="empty"><h1>Ups</h1><p>El link está incompleto o dañado. Pídele a quien te invitó que te lo reenvíe.</p></div>`;

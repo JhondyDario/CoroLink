@@ -30,3 +30,15 @@ export function saveMyTemplate(t) {
   return write(K_TPL, all);
 }
 export function deleteMyTemplate(id) { write(K_TPL, read(K_TPL, []).filter((x) => x.id !== id)); }
+
+// Actualiza sólo una parte del borrador, leyendo la versión más nueva primero.
+// Así el editor y el gestor de invitados pueden estar abiertos a la vez sin pisarse.
+export function updateDraft(id, fn) {
+  const all = read(K_INV, {});
+  const d = all[id];
+  if (!d) return null;
+  fn(d);
+  d.updated = Date.now();
+  all[id] = d;
+  return write(K_INV, all) ? d : null;
+}

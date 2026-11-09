@@ -54,7 +54,13 @@ export async function decodeData(str) {
 // Lee #d=...&to=...&p=... del hash
 export function parseHash(hash = location.hash) {
   const p = new URLSearchParams(hash.replace(/^#/, ''));
-  return { d: p.get('d'), to: p.get('to') || '', passes: parseInt(p.get('p') || '0', 10) || 0 };
+  return {
+    d: p.get('d'),
+    to: p.get('to') || '',
+    passes: parseInt(p.get('p') || '0', 10) || 0,
+    gid: (p.get('g') || '').replace(/[^a-z0-9]/gi, '').slice(0, 12),
+    table: (p.get('m') || '').slice(0, 40),
+  };
 }
 
 export function buildHash(code, guest) {
@@ -62,5 +68,7 @@ export function buildHash(code, guest) {
   p.set('d', code);
   if (guest && guest.name) p.set('to', guest.name);
   if (guest && guest.passes) p.set('p', String(guest.passes));
+  if (guest && guest.id) p.set('g', guest.id);
+  if (guest && guest.table) p.set('m', guest.table);
   return '#' + p.toString();
 }

@@ -127,6 +127,21 @@ input[type=color]::-moz-color-swatch { border: 0; border-radius: 50%; }
 .qr { width: 200px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
 .qr svg { width: 100%; height: auto; }
 
+/* Resumen, avisos y campos RSVP */
+.summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+.stat { background: #f8f7fb; border-radius: 12px; padding: 12px; display: grid; }
+.stat b { font-size: 22px; } .stat b small { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.stat span { font-size: 12px; color: var(--ink-2); }
+.wide-btn { width: 100%; }
+.mini-feats { padding-left: 18px; color: var(--ink-2); font-size: 13px; }
+.mini-feats li { margin: 6px 0; }
+.notice { background: #fff4e6; border: 1px solid #ffd8a8; border-radius: var(--r); padding: 14px; margin-bottom: 14px; }
+.notice p { margin: 4px 0 10px; font-size: 13px; color: var(--ink-2); }
+#share-zone.locked { opacity: .35; pointer-events: none; user-select: none; }
+.rf { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; flex-wrap: wrap; }
+.rf .seg-sm button { padding: 5px 10px; font-size: 12px; }
+#rsvp-fields .f { margin-top: 10px; }
+
 /* Escenario de vista previa */
 .stage { display: flex; flex-direction: column; align-items: center; min-height: 0; padding: 16px; background: radial-gradient(circle at 30% 20%, #efeaff, transparent 50%), radial-gradient(circle at 80% 80%, #ffe8f1, transparent 50%), var(--bg); }
 .stage-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; justify-content: center; }

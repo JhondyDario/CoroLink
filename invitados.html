@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Gestor de invitados · Convida</title>
+  <meta name="theme-color" content="#16131f">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/gestor.css">
+</head>
+<body class="gestor">
+  <header class="topbar">
+    <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="28" height="28"><span>Convida</span></a>
+    <span class="ev-name" id="ev-name"></span>
+    <div class="top-actions">
+      <a class="btn ghost sm" id="back-editor" href="crear.html">Editar invitación</a>
+    </div>
+  </header>
+
+  <nav class="gtabs" role="tablist">
+    <button role="tab" data-tab="lista" class="on">Lista</button>
+    <button role="tab" data-tab="respuestas">Confirmaciones</button>
+    <button role="tab" data-tab="sala">Sala</button>
+    <button role="tab" data-tab="checkin">Check-in</button>
+  </nav>
+
+  <main class="gmain">
+    <div class="stats" id="stats"></div>
+
+    <!-- LISTA -->
+    <section class="gtab on" id="tab-lista">
+      <div class="gcols">
+        <div class="gside">
+          <form class="card add" id="add-form">
+            <h3>Agregar invitado</h3>
+            <label class="f">Nombre<input name="name" required maxlength="80" placeholder="Familia Rodríguez"></label>
+            <div class="row2">
+              <label class="f">Pases<input name="passes" type="number" min="1" max="20" value="2" required></label>
+              <label class="f">Grupo<input name="group" list="groups" maxlength="40" placeholder="Amigos"></label>
+            </div>
+            <label class="f">WhatsApp (opcional)<input name="phone" type="tel" inputmode="tel" maxlength="20" placeholder="809 555 1234"></label>
+            <button class="btn" type="submit">Agregar</button>
+            <p class="limit" id="limit-msg"></p>
+          </form>
+          <details class="card">
+            <summary>Pegar una lista</summary>
+            <p class="hint">Uno por línea: <code>Nombre, pases, teléfono, grupo</code></p>
+            <textarea id="bulk" rows="5" placeholder="Familia Pérez, 4, 8095551234, Novia&#10;Juan Martínez, 1"></textarea>
+            <button class="btn ghost sm" id="bulk-add" type="button">Agregar lista</button>
+          </details>
+          <details class="card">
+            <summary>Mensajes de WhatsApp</summary>
+            <label class="f">Invitación<textarea id="msg-invite" rows="4"></textarea></label>
+            <label class="f">Recordatorio<textarea id="msg-remind" rows="4"></textarea></label>
+            <p class="hint">Usa <code>{nombre}</code>, <code>{pases}</code>, <code>{mesa}</code> y <code>{link}</code>.</p>
+          </details>
+          <datalist id="groups"></datalist>
+        </div>
+
+        <div class="gmainlist">
+          <div class="toolbar">
+            <input type="search" id="q" placeholder="Buscar invitado…" aria-label="Buscar">
+            <select id="f-status" aria-label="Filtrar">
+              <option value="">Todos</option>
+              <option value="pend">Pendientes</option>
+              <option value="si">Confirmados</option>
+              <option value="no">No van</option>
+              <option value="unsent">Sin enviar</option>
+              <option value="notable">Sin mesa</option>
+            </select>
+            <select id="f-group" aria-label="Grupo"><option value="">Todos los grupos</option></select>
+          </div>
+          <div class="bulk-actions">
+            <button class="btn ghost sm" id="remind-all" type="button">Recordar a pendientes</button>
+            <button class="btn ghost sm" id="csv" type="button">Descargar CSV</button>
+          </div>
+          <ul class="glist" id="glist"></ul>
+          <p class="empty-msg" id="empty-list">Todavía no hay invitados. Agrega el primero a la izquierda.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIRMACIONES -->
+    <section class="gtab" id="tab-respuestas">
+      <div class="gcols">
+        <div class="gside">
+          <div class="card">
+            <h3>Cargar confirmaciones</h3>
+            <p class="hint">Cada confirmación que te llega por WhatsApp trae un código (<code>CV|…</code>). Copia y pega aquí los mensajes, uno o muchos juntos, y se marcan solos.</p>
+            <textarea id="paste" rows="8" placeholder="Pega aquí los mensajes de WhatsApp…"></textarea>
+            <div class="btn-row">
+              <button class="btn" id="process" type="button">Procesar</button>
+              <label class="btn ghost file-btn">Subir chat exportado (.txt)<input type="file" id="chat-file" accept=".txt,text/plain" hidden></label>
+            </div>
+            <p class="hint">En WhatsApp: abre el chat › ⋮ › Más › Exportar chat › Sin archivos.</p>
+          </div>
+        </div>
+        <div class="gmainlist">
+          <div id="report"></div>
+          <h3 class="h">Respuestas</h3>
+          <div class="answers" id="answers"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SALA -->
+    <section class="gtab" id="tab-sala">
+      <div class="room-tools">
+        <button class="btn sm" data-new="round" type="button">+ Mesa redonda</button>
+        <button class="btn sm" data-new="rect" type="button">+ Mesa larga</button>
+        <button class="btn ghost sm" data-new="zone" type="button">+ Zona (pista, tarima…)</button>
+        <button class="btn ghost sm" id="auto-seat" type="button">Sentar automáticamente</button>
+      </div>
+      <div class="gcols room-cols">
+        <div class="room-wrap"><div class="room" id="room"></div></div>
+        <div class="gside" id="table-panel"></div>
+      </div>
+    </section>
+
+    <!-- CHECK-IN -->
+    <section class="gtab" id="tab-checkin">
+      <div class="gcols room-cols">
+        <div>
+          <div class="welcome" id="welcome"><span>Esperando llegadas…</span></div>
+          <div class="room-wrap"><div class="room readonly" id="room-live"></div></div>
+          <button class="btn ghost sm" id="fullscreen" type="button">Pantalla completa</button>
+        </div>
+        <div class="gside">
+          <input type="search" id="cq" class="big-search" placeholder="¿Quién llegó? Busca su nombre…" aria-label="Buscar invitado">
+          <ul class="glist compact" id="clist"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="js/gestor.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { TEMPLATES, EVENT_TYPES, FONTS, fontsHref, newInvitation, applyTheme, sanitizeTheme } from './templates.js';
+import { TEMPLATES, CATEGORIES, categoryOf, FONTS, fontsHref, newInvitation, applyTheme, sanitizeTheme } from './templates.js';
 import { encodeData, buildHash } from './codec.js';
 import { esc, parseDate, fmtDate } from './render.js';
 import { tplCard } from './ui.js';
@@ -14,10 +14,9 @@ document.head.appendChild(fonts);
 // Plantillas
 let filter = '';
 function renderTemplates() {
-  const types = [...new Set(TEMPLATES.map((t) => t.type))];
-  $('#tpl-filter').innerHTML = [['', 'Todas'], ...types.map((t) => [t, EVENT_TYPES[t]])]
+  $('#tpl-filter').innerHTML = [['', 'Todas'], ...Object.entries(CATEGORIES).map(([k, c]) => [k, c.name])]
     .map(([v, l]) => `<button type="button" class="chip ${filter === v ? 'on' : ''}" data-f="${v}">${l}</button>`).join('');
-  $('#tpl-grid').innerHTML = TEMPLATES.filter((t) => !filter || t.type === filter)
+  $('#tpl-grid').innerHTML = TEMPLATES.filter((t) => !filter || categoryOf(t.type) === filter)
     .map((t) => tplCard(t, { href: `crear.html?tpl=${t.id}` })).join('');
 }
 $('#tpl-filter').addEventListener('click', (e) => {
@@ -36,7 +35,7 @@ function renderDrafts() {
     return `<div class="draft">
       <div class="sw" style="background:linear-gradient(135deg, ${th.primary}, ${th.accent})"></div>
       <div class="info"><b>${esc(d.inv.ev?.names || 'Sin título')}</b><small>${dt ? esc(fmtDate(dt)) : ''} · ${d.guests?.length || 0} invitados</small></div>
-      <div class="acts"><a class="btn sm" href="crear.html?id=${esc(d.id)}">Editar</a><button class="btn ghost sm" data-del="${esc(d.id)}" type="button" aria-label="Borrar">×</button></div>
+      <div class="acts"><a class="btn sm" href="crear.html?id=${esc(d.id)}">Editar</a><a class="btn ghost sm" href="invitados.html?id=${esc(d.id)}">Invitados</a><button class="btn ghost sm" data-del="${esc(d.id)}" type="button" aria-label="Borrar">×</button></div>
     </div>`;
   }).join('');
 }
@@ -54,4 +53,4 @@ async function demo(id, tplId) {
   $(id).src = 'i.html' + buildHash(await encodeData(inv), { name: 'Familia Pérez', passes: 4 });
 }
 demo('#demo1', 'xv-mariposas');
-demo('#demo2', 'boda-dorada');
+demo('#demo2', 'torneo');

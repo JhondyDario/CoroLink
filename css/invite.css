@@ -27,16 +27,16 @@ svg { display: block; }
 .hero.has-cover .hero-card { border-radius: 0 0 var(--radius) var(--radius); margin-top: 0; }
 .hero-card {
   position: relative; background: var(--card); border-radius: var(--radius); text-align: center;
-  padding: 72px 28px 64px; overflow: hidden;
+  padding: 112px 28px 96px; overflow: hidden;
   box-shadow: 0 20px 50px -20px rgba(var(--text-rgb), .25);
 }
-.corner { position: absolute; width: 150px; height: 150px; pointer-events: none; }
+.corner { position: absolute; width: 118px; height: 118px; pointer-events: none; }
 .corner.tl { top: 0; left: 0; }
 .corner.br { bottom: 0; right: 0; transform: rotate(180deg); }
 .corner svg { width: 100%; height: 100%; }
 .guest { margin: 0 0 6px; font-size: .95rem; opacity: .85; position: relative; }
 .pre { text-transform: uppercase; letter-spacing: .3em; font-size: .78rem; margin: 0 0 10px; color: var(--accent); font-weight: 600; position: relative; }
-.names { font-family: var(--font-title); font-weight: 400; font-size: clamp(2.6rem, 11vw, 4.2rem); line-height: 1.1; margin: 0; color: var(--text); position: relative; overflow-wrap: anywhere; }
+.names { font-family: var(--font-title); font-weight: 400; font-size: calc(clamp(2.6rem, 11vw, 4.2rem) * var(--title-scale, 1)); line-height: 1.1; margin: 0; color: var(--text); position: relative; overflow-wrap: anywhere; }
 .names.small { font-size: 2rem; }
 .divider { width: 180px; margin: 18px auto; position: relative; }
 .date-big { font-size: 1.15rem; margin: 0; position: relative; }
@@ -51,7 +51,7 @@ svg { display: block; }
 .sec.center { padding: 24px; }
 .sec-icon { width: 46px; height: 46px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; background: rgba(var(--accent-rgb), .14); }
 .sec-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.sec-title { font-family: var(--font-title); font-weight: 400; font-size: 2.2rem; margin: 0 0 14px; line-height: 1.15; }
+.sec-title { font-family: var(--font-title); font-weight: 400; font-size: calc(2.2rem * var(--title-scale, 1)); margin: 0 0 14px; line-height: 1.15; }
 .lead { font-size: 1.2rem; margin: 0; }
 blockquote { margin: 18px 0 0; font-style: italic; opacity: .85; }
 .muted { opacity: .75; margin: 4px 0; font-size: .95rem; }
@@ -108,6 +108,22 @@ blockquote { margin: 18px 0 0; font-style: italic; opacity: .85; }
 .foot { background: transparent; box-shadow: none; padding-bottom: 10px; }
 .made { font-size: .8rem; opacity: .6; margin-top: 18px; }
 
+.table-tag { display: inline-block; margin: 14px 6px 0; padding: 8px 16px; border-radius: 999px; background: var(--accent); color: var(--card); font-size: .95rem; position: relative; }
+.if-yes { display: grid; gap: 14px; }
+.if-yes[hidden] { display: none; }
+.rsvp small { font-weight: 400; opacity: .7; }
+
+/* ---------- Variante: Neón ---------- */
+.layout-neon .hero-card, .layout-neon .sec { border-radius: 6px; border: 1px solid rgba(var(--accent-rgb), .6); box-shadow: 0 0 22px rgba(var(--accent-rgb), .28), inset 0 0 24px rgba(var(--accent-rgb), .08); }
+.layout-neon .names, .layout-neon .sec-title { text-shadow: 0 0 8px rgba(var(--accent-rgb), .8), 0 0 28px var(--primary); }
+.layout-neon .pre { text-shadow: 0 0 8px rgba(var(--accent-rgb), .7); }
+.layout-neon .btn { border-radius: 4px; box-shadow: 0 0 14px rgba(var(--accent-rgb), .5); }
+.layout-neon .btn.ghost { box-shadow: none; }
+.layout-neon .cd { border-radius: 4px; background: transparent; border: 1px solid rgba(var(--accent-rgb), .5); box-shadow: inset 0 0 12px rgba(var(--accent-rgb), .15); }
+.layout-neon .cd-n { color: var(--accent); text-shadow: 0 0 10px rgba(var(--accent-rgb), .8); }
+.layout-neon .tl-dot { box-shadow: 0 0 10px var(--accent); }
+.layout-neon .hero-card::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), var(--primary), transparent); }
+
 /* ---------- Variante: Elegante ---------- */
 .layout-elegante .hero-card, .layout-elegante .sec { border-radius: 4px; outline: 1px solid rgba(var(--accent-rgb), .7); outline-offset: -10px; }
 .layout-elegante .hero-card::after { content: ''; position: absolute; inset: 16px; border: 1px solid rgba(var(--accent-rgb), .35); pointer-events: none; }
@@ -116,9 +132,9 @@ blockquote { margin: 18px 0 0; font-style: italic; opacity: .85; }
 .layout-elegante .cd { border-radius: 4px; background: transparent; border: 1px solid rgba(var(--accent-rgb), .5); }
 
 /* ---------- Variante: Moderno ---------- */
-.layout-moderno .hero-card { text-align: left; padding: 64px 28px; border-radius: 28px; }
+.layout-moderno .hero-card { text-align: left; padding: 112px 28px 96px; border-radius: 28px; }
 .layout-moderno .hero-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--accent); }
-.layout-moderno .names { font-size: clamp(2.8rem, 13vw, 4.6rem); font-weight: 700; letter-spacing: -.02em; }
+.layout-moderno .names { font-size: calc(clamp(2.8rem, 13vw, 4.6rem) * var(--title-scale, 1)); font-weight: 700; letter-spacing: -.02em; }
 .layout-moderno .divider { margin-left: 0; }
 .layout-moderno .corner.tl { left: auto; right: 0; transform: scaleX(-1); }
 .layout-moderno .corner.br { right: auto; left: 0; transform: scaleY(-1); opacity: .5; }

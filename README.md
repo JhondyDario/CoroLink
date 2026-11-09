@@ -1,16 +1,29 @@
 # 💌 Convida
 
-Invitaciones digitales **gratis**, sin registro y sin servidor. Para bodas, XV años, cumpleaños, baby showers, bautizos, graduaciones y eventos corporativos. Funciona en celular y en PC.
+Invitaciones digitales **gratis**, sin registro y sin servidor, con gestor de invitados y sala virtual. Funciona en celular y en PC.
 
 ## Qué trae
 
-- **13 plantillas** listas, más tus propias plantillas (guardar, exportar e importar en `.json`).
-- **Editor con vista previa en vivo**: estilos (Clásico, Moderno, Elegante), 9 decoraciones en SVG, paletas, 13 tipografías y fondos.
-- **Sobre animado** con el nombre del invitado y música (YouTube o `.mp3`).
-- **Cuenta regresiva**, **lugares con mapa** (Google Maps y Waze), **itinerario**, **vestimenta**, **regalos** (con botón para copiar la cuenta) y **galería**.
-- **Confirmación (RSVP) por WhatsApp**: el invitado confirma y te llega el mensaje directo.
-- **Links por invitado** con nombre y pases, carga por lista, control de enviados y exportación a CSV.
+- **33 plantillas para 28 tipos de evento**, en 5 categorías:
+  - **Amor**: boda, aniversario, despedida.
+  - **Familia**: XV, cumpleaños, baby shower, bautizo, graduación, bienvenida, reencuentro, cena familiar.
+  - **Gamer y tech**: torneo / eSports, LAN party, lanzamiento de juego, watch party, rol / juegos de mesa.
+  - **Fiestas**: fiesta, Halloween, Año Nuevo, junte / BBQ, pool party, open house.
+  - **Profesional**: corporativo, lanzamiento de producto, taller, conferencia, meetup, evento benéfico.
+- **Tus propias plantillas**: guardar, exportar e importar en `.json`.
+- **Editor con vista previa en vivo**: 4 estilos (Clásico, Moderno, Elegante, Neón), 15 decoraciones en SVG, paletas, 19 tipografías y fondos.
+- **Sobre animado** con el nombre del invitado y música (YouTube o `.mp3` por link).
+- **Cuenta regresiva**, **mapa** (Google Maps y Waze), **itinerario**, **vestimenta**, **regalos** y **galería**.
+- **Formulario de confirmación a tu medida**: el nombre siempre; además puedes pedir (no / opcional / obligatorio) teléfono, número de personas, nombres de acompañantes, alergias, canción favorita, mensaje y una pregunta propia.
 - **Agregar al calendario** (Google Calendar y `.ics`), **código QR** e **imagen PNG** de la portada.
+
+### Gestor de invitados (`invitados.html`)
+
+- **Lista**: agregar uno a uno o pegando una lista, grupos, búsqueda y filtros, envío por WhatsApp con mensaje editable, recordatorios a pendientes y CSV con todas las respuestas.
+- **Confirmaciones**: cada respuesta de WhatsApp trae un código (`CV|id|si|3`). Pegas los mensajes (o subes el chat exportado) y se marcan solos. Quien confirmó con el link general se reconoce por su nombre.
+- **Sala virtual**: plano del salón con mesas redondas y largas, zonas (pista, tarima), arrastrar con el dedo o el mouse, y **sentar automáticamente** manteniendo juntos a los del mismo grupo. Cada invitado ve su mesa en la invitación.
+- **Check-in**: el día del evento marcas quién llega; el plano se va llenando en vivo y la pantalla de bienvenida dice a qué mesa va cada quien (modo pantalla completa para una tablet en la entrada).
+- **Límites**: máximo 100 personas por evento (suma de pases) y mínimo 1 invitado para enviar. Se cambian en `MAX_PEOPLE` y `MIN_GUESTS` dentro de `js/templates.js`.
 
 ## Cómo funciona por dentro
 
@@ -37,6 +50,8 @@ js/templates.js   Plantillas, fuentes, decoraciones SVG y limpieza del tema
 js/render.js      Arma el HTML de la invitación
 js/viewer.js      Lógica del visor: sobre, cuenta regresiva, RSVP, música
 js/editor.js      Lógica del editor
+js/gestor.js      Gestor de invitados: lista, confirmaciones, sala y check-in
+invitados.html    Página del gestor
 js/store.js       Guardado local
 js/vendor/        qrcode-generator y html-to-image (MIT)
 ```

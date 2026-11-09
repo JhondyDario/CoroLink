@@ -128,6 +128,9 @@
             <label class="f">Tu WhatsApp (ahí te llegan las confirmaciones)<input type="tel" data-bind="rsvp.phone" placeholder="809 555 1234" inputmode="tel"></label>
             <label class="f">Confirmar antes del<input type="date" data-bind="rsvp.deadline"></label>
             <label class="f">Nota<input data-bind="rsvp.note" placeholder="Evento sólo para adultos"></label>
+            <h3 class="h">¿Qué debe llenar quien confirma?</h3>
+            <p class="hint">El nombre siempre se pide.</p>
+            <div id="rsvp-fields"></div>
           </details>
         </section>
 
@@ -139,28 +142,27 @@
 
         <!-- INVITADOS -->
         <section class="tab" id="tab-invitados">
-          <p class="hint">Cada invitado recibe su propio link con su nombre y la cantidad de pases.</p>
-          <form class="guest-add" id="guest-form">
-            <input name="name" placeholder="Nombre (ej. Familia Rodríguez)" required>
-            <input name="passes" type="number" min="1" max="20" value="2" title="Pases">
-            <input name="phone" type="tel" placeholder="WhatsApp (opcional)" inputmode="tel">
-            <button class="btn sm" type="submit">Agregar</button>
-          </form>
-          <details><summary>Agregar varios de una vez</summary>
-            <p class="hint">Uno por línea: <code>Nombre, pases, teléfono</code></p>
-            <textarea id="bulk" rows="4" placeholder="Familia Pérez, 4, 8095551234&#10;Juan Martínez, 1"></textarea>
-            <button class="btn ghost sm" id="bulk-add" type="button">Agregar lista</button>
-          </details>
-          <label class="f">Mensaje para enviar<textarea id="send-msg" rows="3"></textarea></label>
-          <p class="hint">Usa <code>{nombre}</code>, <code>{pases}</code> y <code>{link}</code>.</p>
-          <div class="guest-stats" id="guest-stats"></div>
-          <ul class="guests" id="guest-list"></ul>
-          <div class="btn-row"><button class="btn ghost sm" id="guest-csv" type="button">Descargar lista (.csv)</button></div>
+          <p class="hint">Tu lista, las confirmaciones, las mesas y el check-in del día del evento están en el gestor.</p>
+          <div class="summary" id="guest-summary"></div>
+          <a class="btn brand wide-btn" id="open-gestor" href="invitados.html">Abrir gestor de invitados</a>
+          <ul class="mini-feats">
+            <li>Links personales con nombre, pases y mesa</li>
+            <li>Confirmaciones automáticas al pegar los mensajes de WhatsApp</li>
+            <li>Sala virtual: arma las mesas y sienta a tus invitados</li>
+            <li>Check-in: mira en vivo quién va llegando y dónde se sienta</li>
+          </ul>
         </section>
 
         <!-- ENVIAR -->
         <section class="tab" id="tab-enviar">
+          <div class="notice" id="need-guests" hidden>
+            <b>Agrega al menos un invitado para enviar.</b>
+            <p>Así cada quien recibe su link con su nombre y puedes llevar el control de quién confirma.</p>
+            <a class="btn sm" href="#" id="need-guests-btn">Ir al gestor de invitados</a>
+          </div>
+          <div id="share-zone">
           <h3 class="h">Link general</h3>
+          <p class="hint">Para grupos o redes. Quien lo abra confirma escribiendo su nombre.</p>
           <div class="link-box"><input id="share-link" readonly><button class="btn sm" id="copy-link" type="button">Copiar</button></div>
           <p class="hint" id="link-size"></p>
           <div class="btn-row">
@@ -175,6 +177,7 @@
           <h3 class="h">Imagen</h3>
           <p class="hint">Descarga la portada como imagen para estados de WhatsApp o Instagram.</p>
           <div class="btn-row"><button class="btn ghost sm" id="png-dl" type="button">Descargar imagen</button></div>
+          </div>
           <h3 class="h">Respaldo</h3>
           <div class="btn-row">
             <button class="btn ghost sm" id="inv-export" type="button">Exportar invitación</button>

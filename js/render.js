@@ -1,5 +1,5 @@
 // Convierte los datos de una invitación en HTML. Lo usan el visor y la vista previa.
-import { cornerSVG, dividerSVG, fontsHref, EVENT_TYPES, sanitizeTheme } from './templates.js';
+import { cornerSVG, dividerSVG, fontsHref, EVENT_TYPES, sanitizeTheme, FONT_SCALE, RSVP_FIELDS, defaultRsvpFields } from './templates.js';
 
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -74,6 +74,7 @@ export function applyThemeVars(el, theme) {
   set('--accent-rgb', hexToRgb(c.accent));
   set('--font-title', `'${c.fontTitle}', cursive, serif`);
   set('--font-body', `'${c.fontBody}', system-ui, sans-serif`);
+  set('--title-scale', String(FONT_SCALE[c.fontTitle] || 1));
 }
 
 export function ensureFonts(theme, doc = document) {
@@ -108,7 +109,7 @@ function section(id, title, body, ic) {
 
 export function renderInvitation(inv, guest = {}) {
   const t = sanitizeTheme(inv.theme), ev = inv.ev || {}, show = inv.show || {};
-  guest = { name: String(guest.name || '').slice(0, 80), passes: Math.min(99, Math.max(0, parseInt(guest.passes, 10) || 0)) };
+  guest = { name: String(guest.name || '').slice(0, 80), passes: Math.min(99, Math.max(0, parseInt(guest.passes, 10) || 0)), table: String(guest.table || '').slice(0, 40) };
   const dt = parseDate(ev.date, ev.time);
   const corner = cornerSVG(t.deco, t);
   const div = `<div class="divider">${dividerSVG(t)}</div>`;
@@ -126,6 +127,7 @@ export function renderInvitation(inv, guest = {}) {
       ${div}
       ${dt ? `<p class="date-big">${esc(fmtDate(dt))}</p>` : ''}
       ${ev.time ? `<p class="time-big">${esc(fmtTime(ev.time))}</p>` : ''}
+      ${guest.table && show.table !== false ? `<p class="table-tag">Tu mesa: <strong>${esc(guest.table)}</strong></p>` : ''}
       ${guest.passes ? `<p class="passes">Hemos reservado <strong>${guest.passes}</strong> ${guest.passes === 1 ? 'lugar' : 'lugares'} para ti</p>` : ''}
       <div class="scroll-hint" aria-hidden="true"><span></span></div>
     </div>
@@ -197,22 +199,43 @@ export function renderInvitation(inv, guest = {}) {
     parts.push(section('rsvp', 'Confirma tu asistencia', `
       ${deadline ? `<p>Por favor confirma antes del <strong>${esc(fmtDate(deadline))}</strong></p>` : ''}
       ${inv.rsvp?.note ? `<p class="muted">${esc(inv.rsvp.note)}</p>` : ''}
-      <form class="rsvp" id="rsvp-form">
-        <label>Tu nombre<input name="name" required value="${esc(guest.name || '')}" autocomplete="name"></label>
-        <div class="seg" role="radiogroup">
-          <label><input type="radio" name="go" value="si" checked><span>¡Sí, ahí estaré!</span></label>
-          <label><input type="radio" name="go" value="no"><span>No podré ir</span></label>
-        </div>
-        <label class="people">Número de personas<input name="n" type="number" min="1" max="${guest.passes || 20}" value="${guest.passes || 1}"></label>
-        <label>Mensaje (opcional)<textarea name="msg" rows="2" placeholder="Unas palabras para los anfitriones"></textarea></label>
-        <button class="btn wide" type="submit">${hasPhone ? 'Confirmar por WhatsApp' : 'Confirmar'}</button>
-      </form>`, 'heart'));
+      ${rsvpForm(inv, guest, hasPhone)}`, 'heart'));
   }
 
   parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p><p class="made">Hecho con <a href="./" target="_blank">Convida</a> · gratis</p></footer>`);
 
   return `<div class="inv layout-${esc(t.layout)} pattern-${esc(t.pattern || 'none')}">${parts.join('')}</div>`;
 }
+
+// Formulario de confirmación según lo que configuró el anfitrión
+export function rsvpFields(inv) {
+  return { ...defaultRsvpFields(), ...(inv.rsvp?.fields || {}) };
+}
+function rsvpForm(inv, guest, hasPhone) {
+  const F = rsvpFields(inv);
+  const lvl = (k) => (['off', 'opt', 'req'].includes(F[k]) ? F[k] : 'off');
+  const req = (k) => (lvl(k) === 'req' ? 'required' : '');
+  const lab = (k, text) => `${esc(text)}${lvl(k) === 'opt' ? ' <small>(opcional)</small>' : ''}`;
+  const max = guest.passes || 20;
+  const rows = [];
+  rows.push(`<label>Tu nombre<input name="name" required maxlength="80" value="${esc(guest.name || '')}" autocomplete="name"></label>`);
+  rows.push(`<div class="seg" role="radiogroup" aria-label="¿Asistirás?">
+      <label><input type="radio" name="go" value="si" checked><span>¡Sí, ahí estaré!</span></label>
+      <label><input type="radio" name="go" value="no"><span>No podré ir</span></label>
+    </div>`);
+  const yes = [];
+  if (lvl('phone') !== 'off') rows.push(`<label>${lab('phone', 'Tu teléfono')}<input name="phone" type="tel" inputmode="tel" maxlength="20" ${req('phone')} autocomplete="tel"></label>`);
+  if (lvl('count') !== 'off') yes.push(`<label>${lab('count', guest.passes ? `¿Cuántos van? (tienes ${guest.passes})` : '¿Cuántas personas van?')}<input name="n" type="number" min="1" max="${max}" value="${guest.passes || 1}" ${req('count')}></label>`);
+  if (lvl('companions') !== 'off') yes.push(`<label>${lab('companions', 'Nombres de tus acompañantes')}<input name="companions" maxlength="200" placeholder="Separados por coma" ${req('companions')}></label>`);
+  if (lvl('diet') !== 'off') yes.push(`<label>${lab('diet', 'Alergias o restricciones de comida')}<input name="diet" maxlength="120" placeholder="Vegetariano, sin gluten…" ${req('diet')}></label>`);
+  if (lvl('song') !== 'off') yes.push(`<label>${lab('song', 'Canción que no puede faltar')}<input name="song" maxlength="100" ${req('song')}></label>`);
+  if (lvl('custom') !== 'off' && F.customQ) yes.push(`<label>${lab('custom', F.customQ)}<input name="custom" maxlength="200" ${req('custom')}></label>`);
+  if (yes.length) rows.push(`<div class="if-yes">${yes.join('')}</div>`);
+  if (lvl('msg') !== 'off') rows.push(`<label>${lab('msg', 'Mensaje para los anfitriones')}<textarea name="msg" rows="2" maxlength="400" ${req('msg')}></textarea></label>`);
+  rows.push(`<button class="btn wide" type="submit">${hasPhone ? 'Confirmar por WhatsApp' : 'Confirmar'}</button>`);
+  return `<form class="rsvp" id="rsvp-form" novalidate>${rows.join('')}</form>`;
+}
+export { RSVP_FIELDS };
 
 export function envelopeHTML(inv, guest = {}) {
   return `<div class="envelope" id="envelope">

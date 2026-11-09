@@ -1,8 +1,8 @@
 import { encodeData, decodeData, buildHash } from './codec.js';
-import { TEMPLATES, FONTS, DECOS, LAYOUTS, PATTERNS, EVENT_TYPES, getTemplate, newInvitation, applyTheme, fontsHref, sanitizeTheme } from './templates.js';
+import { TEMPLATES, FONTS, DECOS, LAYOUTS, PATTERNS, EVENT_TYPES, CATEGORIES, categoryOf, RSVP_FIELDS, defaultRsvpFields, MAX_PEOPLE, MIN_GUESTS, getTemplate, newInvitation, applyTheme, fontsHref, sanitizeTheme } from './templates.js';
 import { esc, safeUrl, waPhone } from './render.js';
 import { tplCard } from './ui.js';
-import { getDraft, saveDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate } from './store.js';
+import { getDraft, saveDraft, updateDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate } from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -15,7 +15,7 @@ const params = new URLSearchParams(location.search);
 let draft = params.get('id') && getDraft(params.get('id'));
 if (!draft) {
   const tpl = getTemplate(params.get('tpl')) || listMyTemplates().find((t) => t.id === params.get('tpl')) || TEMPLATES[0];
-  const inv = newInvitation(TEMPLATES[0]);
+  const inv = newInvitation(TEMPLATES.includes(tpl) ? tpl : TEMPLATES[0]);
   applyTheme(inv, tpl);
   if (tpl.type) inv.ev.type = tpl.type;
   if (tpl.ev) Object.assign(inv.ev, { pre: tpl.ev.pre, names: tpl.ev.names, msg: tpl.ev.msg });
@@ -24,6 +24,9 @@ if (!draft) {
   history.replaceState(null, '', `?id=${draft.id}`);
 }
 let inv = draft.inv;
+inv.rsvp ??= {};
+inv.rsvp.fields = { ...defaultRsvpFields(), ...(inv.rsvp.fields || {}) };
+inv.show.table ??= true;
 
 const get = (path) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), inv);
 function set(path, val) {
@@ -36,7 +39,7 @@ function set(path, val) {
 // ---------- Guardado ----------
 const saveState = $('#save-state');
 const persist = debounce(() => {
-  const ok = saveDraft(draft);
+  const ok = !!updateDraft(draft.id, (d) => { d.inv = inv; d.msg = draft.msg; });
   saveState.textContent = ok ? 'Guardado' : 'No se pudo guardar (¿fotos muy pesadas?)';
   saveState.classList.toggle('err', !ok);
 }, 500);
@@ -79,10 +82,9 @@ $('#go-share').addEventListener('click', () => { openTab('enviar'); document.bod
 // ---------- Plantillas ----------
 let tplFilter = '';
 function renderTemplates() {
-  const types = [...new Set(TEMPLATES.map((t) => t.type))];
-  $('#tpl-filter').innerHTML = [['', 'Todas'], ...types.map((t) => [t, EVENT_TYPES[t]])]
+  $('#tpl-filter').innerHTML = [['', 'Todas'], ...Object.entries(CATEGORIES).map(([k, c]) => [k, c.name])]
     .map(([v, l]) => `<button type="button" class="chip ${tplFilter === v ? 'on' : ''}" data-f="${v}">${l}</button>`).join('');
-  $('#tpl-grid').innerHTML = TEMPLATES.filter((t) => !tplFilter || t.type === tplFilter).map((t) => tplCard(t, { active: inv.tpl === t.id })).join('');
+  $('#tpl-grid').innerHTML = TEMPLATES.filter((t) => !tplFilter || categoryOf(t.type) === tplFilter).map((t) => tplCard(t, { active: inv.tpl === t.id })).join('');
   const mine = listMyTemplates();
   $('#my-tpl-grid').innerHTML = mine.map((t) => tplCard(t, { mine: true, active: inv.tpl === t.id })).join('');
   $('#my-tpl-empty').hidden = mine.length > 0;
@@ -180,6 +182,7 @@ function fillForm() {
   renderLists();
   renderGallery();
   renderToggles();
+  renderRsvpFields();
   fillCover();
 }
 document.addEventListener('input', (e) => {
@@ -308,7 +311,7 @@ coverInput.addEventListener('input', () => {
 function fillCover() { coverInput.value = inv.cover?.startsWith('data:') ? '(foto subida)' : inv.cover || ''; }
 
 // ---------- Secciones ----------
-const SECTIONS = { countdown: 'Cuenta regresiva', places: 'Lugares y mapa', itin: 'Itinerario', dress: 'Vestimenta', gifts: 'Regalos', gallery: 'Galería de fotos', calendar: 'Agregar al calendario', rsvp: 'Confirmación de asistencia' };
+const SECTIONS = { countdown: 'Cuenta regresiva', places: 'Lugares y mapa', itin: 'Itinerario', dress: 'Vestimenta', gifts: 'Regalos', gallery: 'Galería de fotos', calendar: 'Agregar al calendario', rsvp: 'Confirmación de asistencia', table: 'Mostrar su mesa al invitado' };
 function renderToggles() {
   $('#toggles').innerHTML = Object.entries(SECTIONS).map(([k, l]) => `<label class="switch row"><input type="checkbox" data-s="${k}" ${inv.show[k] ? 'checked' : ''}><span></span>${l}</label>`).join('');
 }
@@ -392,64 +395,54 @@ async function copy(text) {
   }
 }
 
-// ---------- Invitados ----------
+// ---------- Invitados (resumen; la gestión completa está en invitados.html) ----------
 draft.guests ??= [];
 draft.msg ??= DEFAULT_MSG;
-$('#send-msg').value = draft.msg;
-$('#send-msg').addEventListener('input', (e) => { draft.msg = e.target.value; persist(); renderGuests(); });
+$('#open-gestor').href = $('#need-guests-btn').href = `invitados.html?id=${draft.id}`;
 
-function guestMessage(g) {
-  return draft.msg.replace(/\{nombre\}/g, g.name).replace(/\{pases\}/g, g.passes).replace(/\{link\}/g, linkFor(g));
-}
 function renderGuests() {
   const gs = draft.guests;
-  const total = gs.reduce((a, g) => a + (+g.passes || 0), 0);
-  $('#guest-stats').innerHTML = gs.length ? `<span><b>${gs.length}</b> invitaciones</span><span><b>${total}</b> pases</span><span><b>${gs.filter((g) => g.sent).length}</b> enviadas</span>` : '';
-  $('#guest-list').innerHTML = gs.map((g) => `<li class="${g.sent ? 'sent' : ''}" data-g="${g.id}">
-    <div class="g-info"><b>${esc(g.name)}</b><small>${g.passes} pase(s)${g.phone ? ' · ' + esc(g.phone) : ''}${g.sent ? ' · ✓ enviada' : ''}</small></div>
-    <div class="g-actions">
-      <a class="btn sm wa" target="_blank" rel="noopener" data-send href="https://wa.me/${waPhone(g.phone)}?text=${encodeURIComponent(guestMessage(g))}">WhatsApp</a>
-      <button class="btn ghost sm" type="button" data-copy>Link</button>
-      <button class="btn ghost sm" type="button" data-rm aria-label="Eliminar">×</button>
-    </div></li>`).join('');
+  const people = gs.reduce((a, g) => a + (+g.passes || 0), 0);
+  const yes = gs.filter((g) => g.status === 'si').reduce((a, g) => a + (+g.confirmed || 0), 0);
+  $('#guest-summary').innerHTML = `
+    <div class="stat"><b>${gs.length}</b><span>invitaciones</span></div>
+    <div class="stat"><b>${people}<small>/${MAX_PEOPLE}</small></b><span>personas</span></div>
+    <div class="stat"><b>${yes}</b><span>confirmados</span></div>
+    <div class="stat"><b>${gs.filter((g) => !g.status).length}</b><span>pendientes</span></div>`;
+  const ok = gs.length >= MIN_GUESTS;
+  $('#need-guests').hidden = ok;
+  $('#share-zone').classList.toggle('locked', !ok);
   const sel = $('#pv-guest'), cur = sel.value;
   sel.innerHTML = '<option value="">Sin invitado</option>' + gs.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
   sel.value = gs.some((g) => g.id === cur) ? cur : '';
 }
-function addGuest(name, passes, phone) {
-  name = String(name || '').trim().slice(0, 80);
-  if (!name) return;
-  draft.guests.push({ id: uid(), name, passes: Math.min(20, Math.max(1, parseInt(passes, 10) || 1)), phone: String(phone || '').trim(), sent: false });
+// Si el gestor cambia invitados en otra pestaña, nos enteramos
+window.addEventListener('storage', (e) => {
+  if (e.key !== 'convida.invs') return;
+  const d = getDraft(draft.id);
+  if (d) { draft.guests = d.guests || []; renderGuests(); }
+});
+
+// ---------- Campos del RSVP ----------
+function renderRsvpFields() {
+  const F = inv.rsvp.fields;
+  $('#rsvp-fields').innerHTML = Object.entries(RSVP_FIELDS).map(([k, l]) => `<div class="rf">
+    <span>${l}</span>
+    <div class="seg-sm" data-rf="${k}">${[['off', 'No'], ['opt', 'Opcional'], ['req', 'Obligatorio']].map(([v, t]) => `<button type="button" data-v="${v}" class="${F[k] === v ? 'on' : ''}">${t}</button>`).join('')}</div>
+  </div>`).join('') + `<label class="f" ${F.custom === 'off' ? 'hidden' : ''}>Tu pregunta<input id="custom-q" maxlength="80" placeholder="¿Necesitas transporte?" value="${esc(F.customQ || '')}"></label>`;
 }
-$('#guest-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const f = e.target;
-  addGuest(f.name.value, f.passes.value, f.phone.value);
-  f.name.value = ''; f.phone.value = '';
-  f.name.focus();
-  persist();
-  renderGuests();
+$('#rsvp-fields').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-v]');
+  const grp = e.target.closest('[data-rf]');
+  if (!b || !grp) return;
+  inv.rsvp.fields[grp.dataset.rf] = b.dataset.v;
+  renderRsvpFields();
+  changed();
 });
-$('#bulk-add').addEventListener('click', () => {
-  const lines = $('#bulk').value.split('\n').map((l) => l.trim()).filter(Boolean);
-  lines.forEach((l) => { const [n, p, ph] = l.split(/[,;\t]/).map((s) => s.trim()); addGuest(n, p, ph); });
-  $('#bulk').value = '';
-  persist();
-  renderGuests();
-  toast(`${lines.length} invitado(s) agregado(s)`);
-});
-$('#guest-list').addEventListener('click', (e) => {
-  const li = e.target.closest('li');
-  if (!li) return;
-  const g = draft.guests.find((x) => x.id === li.dataset.g);
-  if (e.target.closest('[data-send]')) { g.sent = true; persist(); setTimeout(renderGuests, 300); }
-  if (e.target.closest('[data-copy]')) { copy(linkFor(g)); g.sent = true; persist(); renderGuests(); }
-  if (e.target.closest('[data-rm]') && confirm(`¿Quitar a ${g.name}?`)) { draft.guests = draft.guests.filter((x) => x !== g); persist(); renderGuests(); }
-});
-$('#guest-csv').addEventListener('click', () => {
-  const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
-  const rows = [['Nombre', 'Pases', 'Teléfono', 'Enviada', 'Link'], ...draft.guests.map((g) => [g.name, g.passes, g.phone, g.sent ? 'sí' : 'no', linkFor(g)])];
-  download('invitados.csv', '﻿' + rows.map((r) => r.map(q).join(',')).join('\n'), 'text/csv');
+$('#rsvp-fields').addEventListener('input', (e) => {
+  if (e.target.id !== 'custom-q') return;
+  inv.rsvp.fields.customQ = e.target.value;
+  changed();
 });
 
 // ---------- Vista previa ----------
@@ -458,7 +451,7 @@ let previewReady = false;
 function pushPreview(extra = {}) {
   if (!previewReady) return;
   const g = draft.guests.find((x) => x.id === $('#pv-guest').value);
-  frame.contentWindow.postMessage({ type: 'render', inv, guest: g ? { name: g.name, passes: g.passes } : {}, envelope: $('#pv-envelope').checked && inv.theme.envelope !== false, ...extra }, location.origin);
+  frame.contentWindow.postMessage({ type: 'render', inv, guest: g ? { name: g.name, passes: g.passes, table: tableName(g) } : {}, envelope: $('#pv-envelope').checked && inv.theme.envelope !== false, ...extra }, location.origin);
 }
 const pushPreviewSoon = debounce(pushPreview, 120);
 window.addEventListener('message', (e) => {
@@ -495,7 +488,7 @@ $('#png-dl').addEventListener('click', () => {
 });
 
 // ---------- Respaldo ----------
-$('#inv-export').addEventListener('click', () => download(`invitacion-${slug(inv.ev.names)}.json`, JSON.stringify({ convida: 'invitation', v: 1, inv, guests: draft.guests, msg: draft.msg }, null, 2), 'application/json'));
+$('#inv-export').addEventListener('click', () => download(`invitacion-${slug(inv.ev.names)}.json`, JSON.stringify({ convida: 'invitation', v: 1, inv, guests: draft.guests, tables: draft.tables || [], msg: draft.msg }, null, 2), 'application/json'));
 $('#inv-import').addEventListener('change', async (e) => {
   const f = e.target.files[0];
   e.target.value = '';
@@ -503,13 +496,14 @@ $('#inv-import').addEventListener('change', async (e) => {
   try {
     const j = JSON.parse(await f.text());
     if (j.convida !== 'invitation' || !j.inv?.ev) throw new Error();
-    const d = { id: uid(), inv: { ...newInvitation(), ...j.inv, theme: sanitizeTheme(j.inv.theme) }, guests: Array.isArray(j.guests) ? j.guests : [], msg: j.msg || DEFAULT_MSG };
+    const d = { id: uid(), inv: { ...newInvitation(), ...j.inv, theme: sanitizeTheme(j.inv.theme) }, guests: Array.isArray(j.guests) ? j.guests : [], tables: Array.isArray(j.tables) ? j.tables : [], msg: j.msg || DEFAULT_MSG };
     saveDraft(d);
     location.href = `?id=${d.id}`;
   } catch { toast('Ese archivo no es una invitación de Convida'); }
 });
 
 // ---------- Utilidades ----------
+function tableName(g) { return (draft.tables || []).find((t) => t.id === g.table)?.name || ''; }
 function slug(s) { return String(s || 'invitacion').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'invitacion'; }
 function downloadUrl(name, url) { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
 function download(name, text, type) { const u = URL.createObjectURL(new Blob([text], { type })); downloadUrl(name, u); setTimeout(() => URL.revokeObjectURL(u), 1000); }
@@ -523,6 +517,7 @@ if (location.hash.includes('d=')) {
   decodeData(d).then((j) => {
     if (!j?.ev) return;
     inv = draft.inv = { ...newInvitation(), ...j, theme: sanitizeTheme(j.theme) };
+    inv.rsvp.fields = { ...defaultRsvpFields(), ...(inv.rsvp?.fields || {}) };
     history.replaceState(null, '', `?id=${draft.id}`);
     changed({ rerenderForm: true });
     toast('Invitación cargada para editar');
