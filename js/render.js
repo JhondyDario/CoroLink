@@ -202,7 +202,7 @@ export function renderInvitation(inv, guest = {}) {
       ${rsvpForm(inv, guest, hasPhone)}`, 'heart'));
   }
 
-  parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p><p class="made">Hecho con <a href="./" target="_blank">Convida</a> · gratis</p></footer>`);
+  parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p><p class="made">Hecho con <a href="./" target="_blank">CoroLink</a> · gratis</p></footer>`);
 
   return `<div class="inv layout-${esc(t.layout)} pattern-${esc(t.pattern || 'none')}">${parts.join('')}</div>`;
 }
@@ -263,8 +263,8 @@ export function calendarLinks(inv) {
   const title = [inv.ev.pre, inv.ev.names].filter(Boolean).join(' - ');
   const g = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${f(dt)}/${f(end)}&location=${encodeURIComponent(place)}&details=${encodeURIComponent(location.href)}`;
   const icsEsc = (s) => String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Convida//ES', 'BEGIN:VEVENT',
-    `UID:${Date.now()}@convida`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(dt)}`, `DTEND:${f(end)}`,
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CoroLink//ES', 'BEGIN:VEVENT',
+    `UID:${Date.now()}@corolink`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(dt)}`, `DTEND:${f(end)}`,
     `SUMMARY:${icsEsc(title)}`, `LOCATION:${icsEsc(place)}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
   return { google: g, ics };
 }

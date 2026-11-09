@@ -1,6 +1,6 @@
 // Guarda borradores, invitados y plantillas propias en el navegador (localStorage).
-const K_INV = 'convida.invs';
-const K_TPL = 'convida.tpls';
+const K_INV = 'corolink.invs';
+const K_TPL = 'corolink.tpls';
 
 const read = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };

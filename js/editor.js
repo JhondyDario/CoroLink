@@ -118,7 +118,7 @@ $('#tpl-save').addEventListener('click', () => {
   toast('Plantilla guardada en "Mis plantillas"');
 });
 $('#tpl-export').addEventListener('click', () => {
-  download(`plantilla-${slug(inv.ev.names)}.json`, JSON.stringify({ convida: 'template', v: 1, name: inv.ev.names || 'Mi plantilla', type: inv.ev.type, theme: sanitizeTheme(inv.theme), ev: { pre: inv.ev.pre, names: inv.ev.names, msg: inv.ev.msg } }, null, 2), 'application/json');
+  download(`plantilla-${slug(inv.ev.names)}.json`, JSON.stringify({ corolink: 'template', v: 1, name: inv.ev.names || 'Mi plantilla', type: inv.ev.type, theme: sanitizeTheme(inv.theme), ev: { pre: inv.ev.pre, names: inv.ev.names, msg: inv.ev.msg } }, null, 2), 'application/json');
 });
 $('#tpl-import').addEventListener('change', async (e) => {
   const f = e.target.files[0];
@@ -126,12 +126,12 @@ $('#tpl-import').addEventListener('change', async (e) => {
   if (!f) return;
   try {
     const j = JSON.parse(await f.text());
-    if (j.convida !== 'template' || !j.theme) throw new Error();
+    if (j.corolink !== 'template' || !j.theme) throw new Error();
     const str = (s, n) => String(s || '').slice(0, n);
     saveMyTemplate({ id: 'mi-' + uid(), name: str(j.name, 40) || 'Importada', type: EVENT_TYPES[j.type] ? j.type : 'fiesta', theme: sanitizeTheme(j.theme), ev: { pre: str(j.ev?.pre, 80), names: str(j.ev?.names, 80), msg: str(j.ev?.msg, 600) } });
     renderTemplates();
     toast('Plantilla importada');
-  } catch { toast('Ese archivo no es una plantilla de Convida'); }
+  } catch { toast('Ese archivo no es una plantilla de CoroLink'); }
 });
 
 // ---------- Diseño ----------
@@ -418,7 +418,7 @@ function renderGuests() {
 }
 // Si el gestor cambia invitados en otra pestaña, nos enteramos
 window.addEventListener('storage', (e) => {
-  if (e.key !== 'convida.invs') return;
+  if (e.key !== 'corolink.invs') return;
   const d = getDraft(draft.id);
   if (d) { draft.guests = d.guests || []; renderGuests(); }
 });
@@ -488,18 +488,18 @@ $('#png-dl').addEventListener('click', () => {
 });
 
 // ---------- Respaldo ----------
-$('#inv-export').addEventListener('click', () => download(`invitacion-${slug(inv.ev.names)}.json`, JSON.stringify({ convida: 'invitation', v: 1, inv, guests: draft.guests, tables: draft.tables || [], msg: draft.msg }, null, 2), 'application/json'));
+$('#inv-export').addEventListener('click', () => download(`invitacion-${slug(inv.ev.names)}.json`, JSON.stringify({ corolink: 'invitation', v: 1, inv, guests: draft.guests, tables: draft.tables || [], msg: draft.msg }, null, 2), 'application/json'));
 $('#inv-import').addEventListener('change', async (e) => {
   const f = e.target.files[0];
   e.target.value = '';
   if (!f) return;
   try {
     const j = JSON.parse(await f.text());
-    if (j.convida !== 'invitation' || !j.inv?.ev) throw new Error();
+    if (j.corolink !== 'invitation' || !j.inv?.ev) throw new Error();
     const d = { id: uid(), inv: { ...newInvitation(), ...j.inv, theme: sanitizeTheme(j.inv.theme) }, guests: Array.isArray(j.guests) ? j.guests : [], tables: Array.isArray(j.tables) ? j.tables : [], msg: j.msg || DEFAULT_MSG };
     saveDraft(d);
     location.href = `?id=${d.id}`;
-  } catch { toast('Ese archivo no es una invitación de Convida'); }
+  } catch { toast('Ese archivo no es una invitación de CoroLink'); }
 });
 
 // ---------- Utilidades ----------

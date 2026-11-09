@@ -1,4 +1,4 @@
-# 💌 Convida
+# 💌 CoroLink
 
 Invitaciones digitales **gratis**, sin registro y sin servidor, con gestor de invitados y sala virtual. Funciona en celular y en PC.
 
@@ -20,7 +20,7 @@ Invitaciones digitales **gratis**, sin registro y sin servidor, con gestor de in
 ### Gestor de invitados (`invitados.html`)
 
 - **Lista**: agregar uno a uno o pegando una lista, grupos, búsqueda y filtros, envío por WhatsApp con mensaje editable, recordatorios a pendientes y CSV con todas las respuestas.
-- **Confirmaciones**: cada respuesta de WhatsApp trae un código (`CV|id|si|3`). Pegas los mensajes (o subes el chat exportado) y se marcan solos. Quien confirmó con el link general se reconoce por su nombre.
+- **Confirmaciones**: cada respuesta de WhatsApp trae un código (`CL|id|si|3`). Pegas los mensajes (o subes el chat exportado) y se marcan solos. Quien confirmó con el link general se reconoce por su nombre.
 - **Sala virtual**: plano del salón con mesas redondas y largas, zonas (pista, tarima), arrastrar con el dedo o el mouse, y **sentar automáticamente** manteniendo juntos a los del mismo grupo. Cada invitado ve su mesa en la invitación.
 - **Check-in**: el día del evento marcas quién llega; el plano se va llenando en vivo y la pantalla de bienvenida dice a qué mesa va cada quien (modo pantalla completa para una tablet en la entrada).
 - **Límites**: máximo 100 personas por evento (suma de pases) y mínimo 1 invitado para enviar. Se cambian en `MAX_PEOPLE` y `MIN_GUESTS` dentro de `js/templates.js`.
@@ -30,7 +30,7 @@ Invitaciones digitales **gratis**, sin registro y sin servidor, con gestor de in
 No hay base de datos. La invitación completa se convierte a JSON, se comprime con `deflate-raw` (API `CompressionStream` del navegador) y se guarda en el *fragmento* del link:
 
 ```
-https://tu-usuario.github.io/convida/i.html#d=<invitación comprimida>&to=Familia%20Pérez&p=4
+https://tu-usuario.github.io/corolink/i.html#d=<invitación comprimida>&to=Familia%20Pérez&p=4
 ```
 
 El fragmento (`#...`) nunca se envía a ningún servidor, así que el hosting es estático y gratis, y los datos de tus invitados son privados. Un link normal pesa menos de 1 KB. Las fotos subidas se comprimen y van dentro del link (lo hacen más largo); por eso también se pueden usar links de imágenes.

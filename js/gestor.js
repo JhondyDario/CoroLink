@@ -34,7 +34,7 @@ function changed() { save(); renderAll(); }
 
 // Otra pestaña (el editor) cambió la invitación: recalculamos los links
 window.addEventListener('storage', (e) => {
-  if (e.key !== 'convida.invs') return;
+  if (e.key !== 'corolink.invs') return;
   const d = getDraft(draft.id);
   if (!d) return;
   draft.inv = d.inv;
@@ -265,10 +265,10 @@ $('#csv').addEventListener('click', () => {
 });
 
 // ---------- Confirmaciones ----------
-// Lee los mensajes que generó el formulario: "Soy *Nombre* ... CV|id|si|3"
+// Lee los mensajes que generó el formulario: "Soy *Nombre* ... CL|id|si|3"
 export function parseConfirmations(text) {
   const out = [];
-  const re = /Soy \*([^*\n]{1,80})\*([\s\S]*?)CV\|([a-z0-9]{1,12})\|(si|no)\|(\d{1,3})/gi;
+  const re = /Soy \*([^*\n]{1,80})\*([\s\S]*?)CL\|([a-z0-9]{1,12})\|(si|no)\|(\d{1,3})/gi;
   let m;
   while ((m = re.exec(text))) {
     const body = m[2];
@@ -283,7 +283,7 @@ export function parseConfirmations(text) {
 
 function applyConfirmations(text) {
   const items = parseConfirmations(text);
-  if (!items.length) { $('#report').innerHTML = `<div class="notice"><b>No encontramos confirmaciones.</b><p>Asegúrate de pegar los mensajes completos, con la línea que empieza con CV|.</p></div>`; return; }
+  if (!items.length) { $('#report').innerHTML = `<div class="notice"><b>No encontramos confirmaciones.</b><p>Asegúrate de pegar los mensajes completos, con la línea que empieza con CL|.</p></div>`; return; }
   const done = [], unknown = [];
   for (const it of items) {
     let g = it.gid !== '0' && guests.find((x) => x.id === it.gid);

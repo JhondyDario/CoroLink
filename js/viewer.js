@@ -99,7 +99,7 @@ function wire(inv, guest) {
       if (yes && val('custom')) lines.push(`❓ ${F.customQ}: ${val('custom')}`);
       if (val('msg')) lines.push(`💬 ${val('msg')}`);
       // Código para que el gestor de invitados lo lea solo
-      lines.push('', `CV|${guest.gid || '0'}|${yes ? 'si' : 'no'}|${n}`);
+      lines.push('', `CL|${guest.gid || '0'}|${yes ? 'si' : 'no'}|${n}`);
       const text = lines.join('\n');
       const url = `https://wa.me/${waPhone(inv.rsvp?.phone)}?text=${encodeURIComponent(text)}`;
       if (isPreview) { form.querySelector('button[type=submit]').textContent = 'Vista previa: aquí se abriría WhatsApp'; return; }
@@ -188,7 +188,7 @@ if (isPreview) {
   const load = async () => {
     const { d, to, passes, gid, table } = parseHash();
     if (!d) {
-      app.innerHTML = `<div class="empty"><h1>Convida</h1><p>Este link no tiene una invitación.</p><a class="btn" href="crear.html">Crear una gratis</a></div>`;
+      app.innerHTML = `<div class="empty"><h1>CoroLink</h1><p>Este link no tiene una invitación.</p><a class="btn" href="crear.html">Crear una gratis</a></div>`;
       return;
     }
     try {
