@@ -99,8 +99,11 @@ const icon = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>',
 };
 
+// Qué grupo del editor corresponde a cada parte (para editar tocando la vista previa)
+const EDIT_GROUP = { countdown: 'evento', places: 'lugares', itin: 'itinerario', dress: 'vestimenta', gifts: 'regalos', gallery: 'galeria', rsvp: 'rsvp' };
+
 function section(id, title, body, ic) {
-  return `<section class="sec reveal" id="sec-${id}">
+  return `<section class="sec reveal" id="sec-${id}" data-edit="${EDIT_GROUP[id] || 'evento'}">
     ${ic ? `<div class="sec-icon">${icon[ic]}</div>` : ''}
     <h2 class="sec-title">${esc(title)}</h2>
     ${body}
@@ -118,8 +121,8 @@ export function renderInvitation(inv, guest = {}) {
 
   // ---------- Portada ----------
   parts.push(`<header class="hero ${cover ? 'has-cover' : ''}">
-    ${cover ? `<div class="hero-img" style="background-image:url('${esc(cover)}')"></div>` : ''}
-    <div class="hero-card">
+    ${cover ? `<div class="hero-img" data-edit="portada" style="background-image:url('${esc(cover)}')"></div>` : ''}
+    <div class="hero-card" data-edit="evento">
       ${corner ? `<div class="corner tl">${corner}</div><div class="corner br">${corner}</div>` : ''}
       ${guest.name ? `<p class="guest">Querido(a) <strong>${esc(guest.name)}</strong></p>` : ''}
       ${ev.pre ? `<p class="pre">${esc(ev.pre)}</p>` : ''}
@@ -134,7 +137,7 @@ export function renderInvitation(inv, guest = {}) {
   </header>`);
 
   if (ev.msg || ev.quote) {
-    parts.push(`<section class="sec reveal msg">
+    parts.push(`<section class="sec reveal msg" data-edit="evento">
       ${ev.msg ? `<p class="lead">${esc(ev.msg)}</p>` : ''}
       ${ev.quote ? `<blockquote>${esc(ev.quote)}</blockquote>` : ''}
     </section>`);
@@ -187,7 +190,7 @@ export function renderInvitation(inv, guest = {}) {
   }
 
   if (show.calendar && dt) {
-    parts.push(`<section class="sec reveal center"><div class="btn-row">
+    parts.push(`<section class="sec reveal center" data-edit="evento"><div class="btn-row">
       <a class="btn" id="gcal" target="_blank" rel="noopener">Agregar a Google Calendar</a>
       <button class="btn ghost" id="ics" type="button">Descargar evento (.ics)</button>
     </div></section>`);

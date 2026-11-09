@@ -42,3 +42,41 @@ export function updateDraft(id, fn) {
   all[id] = d;
   return write(K_INV, all) ? d : null;
 }
+
+// ---------- Favoritas ----------
+const K_FAV = 'corolink.favs';
+export const listFavs = () => read(K_FAV, []);
+export const isFav = (id) => listFavs().includes(id);
+export function toggleFav(id) {
+  const favs = listFavs();
+  const on = !favs.includes(id);
+  write(K_FAV, on ? [id, ...favs] : favs.filter((x) => x !== id));
+  return on;
+}
+
+// ---------- Duplicar y convertir en plantilla ----------
+const clone = (o) => JSON.parse(JSON.stringify(o));
+
+// Copia la invitación (diseño y contenido). Los invitados no se copian:
+// casi siempre el otro evento lleva otra lista.
+export function duplicateDraft(id) {
+  const d = getDraft(id);
+  if (!d) return null;
+  const copy = { id: uid(), inv: clone(d.inv), guests: [], tables: clone(d.tables || []), msg: d.msg, remind: d.remind };
+  copy.inv.ev.names = `${copy.inv.ev.names || 'Invitación'} (copia)`;
+  return saveDraft(copy) ? copy : null;
+}
+
+// Plantilla propia. Con withContent guarda también textos, lugares, itinerario,
+// formulario, etc. (todo menos los invitados) para arrancar invitaciones nuevas.
+export function templateFromInvitation(inv, name, withContent) {
+  const t = {
+    id: 'mi-' + uid(),
+    name: String(name || 'Mi plantilla').slice(0, 40),
+    type: inv.ev?.type,
+    theme: clone(inv.theme),
+    ev: { pre: inv.ev?.pre, names: inv.ev?.names, msg: inv.ev?.msg },
+  };
+  if (withContent) t.inv = clone(inv);
+  return saveMyTemplate(t) ? t : null;
+}

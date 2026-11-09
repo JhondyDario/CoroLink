@@ -1,8 +1,8 @@
 import { encodeData, decodeData, buildHash } from './codec.js';
 import { TEMPLATES, FONTS, DECOS, LAYOUTS, PATTERNS, EVENT_TYPES, CATEGORIES, categoryOf, RSVP_FIELDS, defaultRsvpFields, MAX_PEOPLE, MIN_GUESTS, getTemplate, newInvitation, applyTheme, fontsHref, sanitizeTheme } from './templates.js';
 import { esc, safeUrl, waPhone } from './render.js';
-import { tplCard } from './ui.js';
-import { getDraft, saveDraft, updateDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate } from './store.js';
+import { tplCard, filterChips, filterTemplates } from './ui.js';
+import { getDraft, saveDraft, updateDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate, listFavs, toggleFav, duplicateDraft, templateFromInvitation } from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -15,10 +15,19 @@ const params = new URLSearchParams(location.search);
 let draft = params.get('id') && getDraft(params.get('id'));
 if (!draft) {
   const tpl = getTemplate(params.get('tpl')) || listMyTemplates().find((t) => t.id === params.get('tpl')) || TEMPLATES[0];
-  const inv = newInvitation(TEMPLATES.includes(tpl) ? tpl : TEMPLATES[0]);
-  applyTheme(inv, tpl);
-  if (tpl.type) inv.ev.type = tpl.type;
-  if (tpl.ev) Object.assign(inv.ev, { pre: tpl.ev.pre, names: tpl.ev.names, msg: tpl.ev.msg });
+  let inv;
+  if (tpl.inv) {
+    // Plantilla propia con contenido: arrancamos con todo lo que traía
+    const base = newInvitation(TEMPLATES[0]);
+    inv = { ...base, ...JSON.parse(JSON.stringify(tpl.inv)), tpl: tpl.id, theme: sanitizeTheme(tpl.inv.theme) };
+    inv.ev = { ...base.ev, ...inv.ev };
+    inv.show = { ...base.show, ...inv.show };
+  } else {
+    inv = newInvitation(TEMPLATES.includes(tpl) ? tpl : TEMPLATES[0]);
+    applyTheme(inv, tpl);
+    if (tpl.type) inv.ev.type = tpl.type;
+    if (tpl.ev) Object.assign(inv.ev, { pre: tpl.ev.pre, names: tpl.ev.names, msg: tpl.ev.msg });
+  }
   draft = { id: uid(), inv, guests: [], msg: DEFAULT_MSG };
   saveDraft(draft);
   history.replaceState(null, '', `?id=${draft.id}`);
@@ -43,6 +52,7 @@ const persist = debounce(() => {
   saveState.textContent = ok ? 'Guardado' : 'No se pudo guardar (¿fotos muy pesadas?)';
   saveState.classList.toggle('err', !ok);
 }, 500);
+function persistNow() { updateDraft(draft.id, (d) => { d.inv = inv; d.msg = draft.msg; }); }
 
 function changed({ rerenderForm = false } = {}) {
   saveState.textContent = 'Guardando…';
@@ -82,11 +92,14 @@ $('#go-share').addEventListener('click', () => { openTab('enviar'); document.bod
 // ---------- Plantillas ----------
 let tplFilter = '';
 function renderTemplates() {
-  $('#tpl-filter').innerHTML = [['', 'Todas'], ...Object.entries(CATEGORIES).map(([k, c]) => [k, c.name])]
-    .map(([v, l]) => `<button type="button" class="chip ${tplFilter === v ? 'on' : ''}" data-f="${v}">${l}</button>`).join('');
-  $('#tpl-grid').innerHTML = TEMPLATES.filter((t) => !tplFilter || categoryOf(t.type) === tplFilter).map((t) => tplCard(t, { active: inv.tpl === t.id })).join('');
   const mine = listMyTemplates();
-  $('#my-tpl-grid').innerHTML = mine.map((t) => tplCard(t, { mine: true, active: inv.tpl === t.id })).join('');
+  const ids = new Set([...TEMPLATES, ...mine].map((t) => t.id));
+  const favs = listFavs().filter((id) => ids.has(id)).length;
+  if (tplFilter === 'fav' && !favs) tplFilter = '';
+  if (tplFilter === 'mine' && !mine.length) tplFilter = '';
+  $('#tpl-filter').innerHTML = filterChips(tplFilter, { favs, mine: mine.length });
+  $('#tpl-grid').innerHTML = filterTemplates(TEMPLATES, mine, tplFilter).map(({ t, mine: m }) => tplCard(t, { mine: m, active: inv.tpl === t.id })).join('')
+    || '<p class="hint">No hay plantillas aquí.</p>';
   $('#my-tpl-empty').hidden = mine.length > 0;
 }
 $('#tpl-filter').addEventListener('click', (e) => {
@@ -94,6 +107,14 @@ $('#tpl-filter').addEventListener('click', (e) => {
   if (b) { tplFilter = b.dataset.f; renderTemplates(); }
 });
 function pickTemplate(e) {
+  const fav = e.target.closest('[data-fav]');
+  if (fav) {
+    if (e.type === 'keydown') return;
+    const on = toggleFav(fav.dataset.fav);
+    renderTemplates();
+    toast(on ? 'Agregada a favoritas ★' : 'Quitada de favoritas');
+    return;
+  }
   const del = e.target.closest('[data-del]');
   if (del) {
     if (confirm('¿Borrar esta plantilla?')) { deleteMyTemplate(del.dataset.del); renderTemplates(); }
@@ -108,14 +129,30 @@ function pickTemplate(e) {
   changed({ rerenderForm: true });
   toast(`Plantilla "${t.name}" aplicada`);
 }
-['#tpl-grid', '#my-tpl-grid'].forEach((s) => { $(s).addEventListener('click', pickTemplate); $(s).addEventListener('keydown', pickTemplate); });
+$('#tpl-grid').addEventListener('click', pickTemplate);
+$('#tpl-grid').addEventListener('keydown', pickTemplate);
 
-$('#tpl-save').addEventListener('click', () => {
-  const name = prompt('Nombre para tu plantilla:', 'Mi diseño');
+// Guardar esta invitación como plantilla (sólo diseño, o diseño + contenido)
+function saveAsTemplate(askContent = true) {
+  const name = prompt('Nombre para tu plantilla:', inv.ev.names || 'Mi plantilla');
   if (!name) return;
-  saveMyTemplate({ id: 'mi-' + uid(), name: name.slice(0, 40), type: inv.ev.type, theme: sanitizeTheme(inv.theme), ev: { pre: inv.ev.pre, names: inv.ev.names, msg: inv.ev.msg } });
+  const withContent = askContent
+    ? confirm('¿Incluir también el contenido? (textos, lugares, itinerario, vestimenta, regalos, formulario…)\n\nAceptar = diseño y contenido\nCancelar = sólo el diseño')
+    : true;
+  const t = templateFromInvitation({ ...inv, theme: sanitizeTheme(inv.theme) }, name, withContent);
+  if (!t) return toast('No se pudo guardar (¿fotos muy pesadas?)');
+  tplFilter = 'mine';
   renderTemplates();
-  toast('Plantilla guardada en "Mis plantillas"');
+  toast(withContent ? 'Guardada con diseño y contenido en "Mis plantillas"' : 'Diseño guardado en "Mis plantillas"');
+}
+$('#tpl-save').addEventListener('click', () => saveAsTemplate(true));
+$('#inv-as-tpl').addEventListener('click', () => saveAsTemplate(true));
+$('#inv-dup').addEventListener('click', () => {
+  persistNow();
+  const c = duplicateDraft(draft.id);
+  if (!c) return toast('No se pudo duplicar');
+  toast('Copia creada. Abriéndola…');
+  setTimeout(() => (location.href = `crear.html?id=${c.id}`), 500);
 });
 $('#tpl-export').addEventListener('click', () => {
   download(`plantilla-${slug(inv.ev.names)}.json`, JSON.stringify({ corolink: 'template', v: 1, name: inv.ev.names || 'Mi plantilla', type: inv.ev.type, theme: sanitizeTheme(inv.theme), ev: { pre: inv.ev.pre, names: inv.ev.names, msg: inv.ev.msg } }, null, 2), 'application/json');
@@ -196,6 +233,9 @@ document.addEventListener('change', (e) => {
   if (el && (el.type === 'checkbox' || el.tagName === 'SELECT')) { set(el.dataset.bind, el.type === 'checkbox' ? el.checked : el.value); changed(); }
 });
 
+// Los campos de contenido pueden estar en la pestaña o en el panel derecho
+const onContent = (ev, fn) => ['#tab-contenido', '#insp-body'].forEach((s) => $(s).addEventListener(ev, fn));
+
 // ---------- Listas (lugares, itinerario, regalos) ----------
 const LISTS = {
   places: { root: () => inv.places, fields: [['label', 'Título (Ceremonia, Recepción…)'], ['name', 'Nombre del lugar'], ['addr', 'Dirección'], ['time', 'Hora', 'time']], blank: { label: 'Recepción', name: '', addr: '', time: '' } },
@@ -214,13 +254,13 @@ function renderLists() {
       </div></div>`).join('');
   }
 }
-$('#tab-contenido').addEventListener('input', (e) => {
+onContent('input', (e) => {
   const item = e.target.closest('.item');
   if (!item || !e.target.dataset.f) return;
   LISTS[item.dataset.list].root()[item.dataset.i][e.target.dataset.f] = e.target.value;
   changed();
 });
-$('#tab-contenido').addEventListener('click', (e) => {
+onContent('click', (e) => {
   const add = e.target.closest('[data-add]');
   if (add) {
     const L = LISTS[add.dataset.add];
@@ -471,6 +511,75 @@ $('#device').addEventListener('click', (e) => {
 });
 $('#open-preview').addEventListener('click', () => document.body.classList.add('show-preview'));
 $('#close-preview').addEventListener('click', () => document.body.classList.remove('show-preview'));
+
+// ---------- Panel derecho: editar tocando la vista previa ----------
+// En PC los campos de la sección tocada se mudan a un panel a la derecha.
+// En pantallas más pequeñas te llevamos a esa sección de "Contenido".
+const GROUP_TITLES = { evento: 'Evento', portada: 'Foto de portada', lugares: 'Lugares', itinerario: 'Itinerario', vestimenta: 'Vestimenta', regalos: 'Regalos', galeria: 'Galería', musica: 'Música', rsvp: 'Confirmación (RSVP)' };
+const GROUP_SHOW = { lugares: 'places', itinerario: 'itin', vestimenta: 'dress', regalos: 'gifts', galeria: 'gallery', rsvp: 'rsvp' };
+const wide = matchMedia('(min-width: 1180px)');
+let inspecting = null;
+
+function postEditing(group, scroll = false) {
+  if (previewReady) frame.contentWindow.postMessage({ type: 'editing', group, scroll }, location.origin);
+}
+function closeInspector() {
+  if (!inspecting) return;
+  const { details, nodes } = inspecting;
+  nodes.forEach((n) => details.appendChild(n));
+  details.classList.remove('moved');
+  inspecting = null;
+  $('#inspector').hidden = true;
+  document.body.classList.remove('inspecting');
+  postEditing('');
+}
+function openInspector(group) {
+  const details = $(`details[data-group="${group}"]`);
+  if (!details) return;
+  closeInspector();
+  if (!wide.matches) {
+    document.body.classList.remove('show-preview');
+    openTab('contenido');
+    $$('#tab-contenido details').forEach((d) => (d.open = d === details));
+    details.scrollIntoView({ block: 'start' });
+    details.classList.add('flash');
+    setTimeout(() => details.classList.remove('flash'), 1200);
+    return;
+  }
+  const nodes = [...details.children].filter((n) => n.tagName !== 'SUMMARY');
+  nodes.forEach((n) => $('#insp-body').appendChild(n));
+  details.classList.add('moved');
+  inspecting = { group, details, nodes };
+  $('#insp-title').textContent = GROUP_TITLES[group] || 'Editar';
+  const key = GROUP_SHOW[group];
+  $('#insp-show-wrap').hidden = !key;
+  if (key) $('#insp-show').checked = !!inv.show[key];
+  $('#inspector').hidden = false;
+  document.body.classList.add('inspecting');
+  $('#insp-body').scrollTop = 0;
+  postEditing(group);
+  $('#insp-body').querySelector('input:not([type=file]), textarea, select')?.focus({ preventScroll: true });
+}
+window.addEventListener('message', (e) => {
+  if (e.origin === location.origin && e.data?.type === 'edit') openInspector(e.data.group);
+});
+$('#insp-close').addEventListener('click', closeInspector);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && inspecting) closeInspector(); });
+wide.addEventListener('change', () => { if (!wide.matches) closeInspector(); });
+$('#insp-show').addEventListener('change', (e) => {
+  const key = GROUP_SHOW[inspecting?.group];
+  if (!key) return;
+  inv.show[key] = e.target.checked;
+  renderToggles();
+  changed();
+});
+// Abrir una sección en "Contenido" la marca en la vista previa; si sus campos
+// están en el panel derecho, se devuelven a su lugar.
+$$('#tab-contenido details[data-group]').forEach((d) => d.addEventListener('toggle', () => {
+  if (!d.open) return;
+  if (d.classList.contains('moved')) closeInspector();
+  postEditing(d.dataset.group, true);
+}));
 
 $('#png-dl').addEventListener('click', () => {
   if (!previewReady) return;

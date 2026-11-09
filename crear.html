@@ -35,12 +35,10 @@
       <div class="tab-body">
         <!-- PLANTILLA -->
         <section class="tab on" id="tab-plantilla">
-          <p class="hint">Escoge un punto de partida. Cambiar de plantilla sólo cambia el diseño: tu texto se queda.</p>
+          <p class="hint">Escoge un punto de partida. Cambiar de plantilla sólo cambia el diseño: tu texto se queda. Toca ☆ para guardarla en favoritas.</p>
           <div class="filter" id="tpl-filter"></div>
           <div class="tpl-grid" id="tpl-grid"></div>
-          <h3 class="h">Mis plantillas</h3>
-          <div class="tpl-grid" id="my-tpl-grid"></div>
-          <p class="hint" id="my-tpl-empty">Todavía no tienes. Diseña algo en <b>Diseño</b> y dale a "Guardar como plantilla".</p>
+          <p class="hint" id="my-tpl-empty">¿Te gustó cómo quedó una invitación? En <b>Enviar → Guardar como plantilla</b> la conviertes en plantilla para tus próximos eventos.</p>
           <label class="btn ghost sm file-btn">Importar plantilla (.json)<input type="file" accept=".json,application/json" id="tpl-import" hidden></label>
         </section>
 
@@ -79,7 +77,7 @@
 
         <!-- CONTENIDO -->
         <section class="tab" id="tab-contenido">
-          <details open><summary>Evento</summary>
+          <details open data-group="evento"><summary>Evento</summary>
             <label class="f">Tipo de evento<select data-bind="ev.type" id="ev-type"></select></label>
             <label class="f">Frase de arriba<input data-bind="ev.pre" placeholder="Nos casamos"></label>
             <label class="f">Nombres / título<input data-bind="ev.names" placeholder="Ana & Luis"></label>
@@ -90,7 +88,7 @@
             <label class="f">Mensaje<textarea rows="3" data-bind="ev.msg"></textarea></label>
             <label class="f">Frase o cita (opcional)<textarea rows="2" data-bind="ev.quote"></textarea></label>
           </details>
-          <details><summary>Foto de portada</summary>
+          <details data-group="portada"><summary>Foto de portada</summary>
             <p class="hint">Pega el link de una imagen o súbela. Si la subes, la comprimimos y va dentro del link (lo hace más largo).</p>
             <label class="f">Link de la imagen<input placeholder="https://…" id="cover-url"></label>
             <div class="btn-row">
@@ -98,33 +96,33 @@
               <button class="btn ghost sm" id="cover-clear" type="button">Quitar</button>
             </div>
           </details>
-          <details><summary>Lugares</summary>
+          <details data-group="lugares"><summary>Lugares</summary>
             <div class="list" id="places-list"></div>
             <button class="btn ghost sm" type="button" data-add="places">+ Agregar lugar</button>
           </details>
-          <details><summary>Itinerario</summary>
+          <details data-group="itinerario"><summary>Itinerario</summary>
             <div class="list" id="itin-list"></div>
             <button class="btn ghost sm" type="button" data-add="itin">+ Agregar momento</button>
           </details>
-          <details><summary>Vestimenta</summary>
+          <details data-group="vestimenta"><summary>Vestimenta</summary>
             <label class="f">Código<input data-bind="dress.code" placeholder="Formal, Cóctel, Blanco total…"></label>
             <label class="f">Nota<input data-bind="dress.note" placeholder="Evitar el color blanco"></label>
           </details>
-          <details><summary>Regalos</summary>
+          <details data-group="regalos"><summary>Regalos</summary>
             <label class="f">Mensaje<textarea rows="2" data-bind="gifts.note"></textarea></label>
             <div class="list" id="gifts-list"></div>
             <button class="btn ghost sm" type="button" data-add="gifts">+ Agregar opción</button>
           </details>
-          <details><summary>Galería</summary>
+          <details data-group="galeria"><summary>Galería</summary>
             <div class="thumbs" id="gallery-list"></div>
             <div class="row-add"><input id="gallery-url" placeholder="Link de imagen https://…"><button class="btn ghost sm" id="gallery-add" type="button">Agregar</button></div>
             <label class="btn ghost sm file-btn">Subir fotos<input type="file" accept="image/*" multiple id="gallery-file" hidden></label>
           </details>
-          <details><summary>Música</summary>
+          <details data-group="musica"><summary>Música</summary>
             <label class="f">Link de YouTube o de un .mp3<input data-bind="music" placeholder="https://youtu.be/…"></label>
             <p class="hint">Empieza a sonar cuando el invitado abre el sobre.</p>
           </details>
-          <details><summary>Confirmación (RSVP)</summary>
+          <details data-group="rsvp"><summary>Confirmación (RSVP)</summary>
             <label class="f">Tu WhatsApp (ahí te llegan las confirmaciones)<input type="tel" data-bind="rsvp.phone" placeholder="809 555 1234" inputmode="tel"></label>
             <label class="f">Confirmar antes del<input type="date" data-bind="rsvp.deadline"></label>
             <label class="f">Nota<input data-bind="rsvp.note" placeholder="Evento sólo para adultos"></label>
@@ -180,6 +178,8 @@
           </div>
           <h3 class="h">Respaldo</h3>
           <div class="btn-row">
+            <button class="btn ghost sm" id="inv-dup" type="button">Duplicar invitación</button>
+            <button class="btn ghost sm" id="inv-as-tpl" type="button">Guardar como plantilla</button>
             <button class="btn ghost sm" id="inv-export" type="button">Exportar invitación</button>
             <label class="btn ghost sm file-btn">Importar<input type="file" accept=".json,application/json" id="inv-import" hidden></label>
           </div>
@@ -198,7 +198,19 @@
         <button class="btn ghost sm close-preview" id="close-preview" type="button">Cerrar</button>
       </div>
       <div class="device phone" id="device-frame"><iframe id="preview" src="i.html?preview=1" title="Vista previa"></iframe></div>
+      <p class="stage-hint">Toca cualquier parte de la invitación para editarla</p>
     </section>
+
+    <aside class="inspector" id="inspector" aria-label="Editar sección" hidden>
+      <div class="insp-head">
+        <h2 id="insp-title">Editar</h2>
+        <button class="btn ghost sm" id="insp-close" type="button" aria-label="Cerrar panel">✕</button>
+      </div>
+      <div class="insp-body" id="insp-body"></div>
+      <div class="insp-foot">
+        <label class="switch sm" id="insp-show-wrap"><input type="checkbox" id="insp-show"><span></span>Mostrar en la invitación</label>
+      </div>
+    </aside>
   </div>
 
   <button class="fab" id="open-preview" type="button">Vista previa</button>

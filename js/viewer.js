@@ -171,13 +171,32 @@ async function exportPng() {
 }
 
 // ---------- Arranque ----------
+// En la vista previa del editor: tocar una parte abre sus campos de edición
+let editing = '';
+function markEditing() {
+  app.querySelectorAll('[data-edit]').forEach((el) => el.classList.toggle('editing', !!editing && el.dataset.edit === editing));
+}
 if (isPreview) {
   document.body.classList.add('preview');
+  app.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-edit]');
+    if (!el || e.target.closest('#envelope')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    editing = el.dataset.edit;
+    markEditing();
+    parent.postMessage({ type: 'edit', group: editing }, location.origin);
+  }, true);
   window.addEventListener('message', async (e) => {
     if (e.origin !== location.origin) return;
     const m = e.data || {};
     if (m.type === 'ping') e.source.postMessage({ type: 'preview-ready' }, e.origin);
-    if (m.type === 'render') render(m.inv, m.guest || {}, { envelope: !!m.envelope });
+    if (m.type === 'render') { render(m.inv, m.guest || {}, { envelope: !!m.envelope }); markEditing(); }
+    if (m.type === 'editing') {
+      editing = m.group || '';
+      markEditing();
+      if (editing && m.scroll) app.querySelector(`[data-edit="${CSS.escape(editing)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     if (m.type === 'export-png') {
       try { e.source.postMessage({ type: 'png', data: await exportPng() }, e.origin); }
       catch (err) { e.source.postMessage({ type: 'png', error: String(err) }, e.origin); }

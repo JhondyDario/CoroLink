@@ -175,3 +175,9 @@ blockquote { margin: 18px 0 0; font-style: italic; opacity: .85; }
 body.preview .hero { min-height: 100vh; }
 @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .scroll-hint span, .music-btn.on { animation: none; } }
 @media (min-width: 700px) { body { font-size: 19px; } .sec { padding: 44px 40px; } }
+
+/* ---------- Vista previa del editor: tocar para editar ---------- */
+body.preview [data-edit] { cursor: pointer; transition: outline-color .15s; outline: 2px dashed transparent; outline-offset: 4px; }
+body.preview [data-edit]:hover { outline-color: rgba(112, 72, 232, .55); }
+body.preview [data-edit].editing { outline: 3px solid #7048e8; outline-offset: 4px; }
+body.preview .hero-card[data-edit] { outline-offset: -4px; }
