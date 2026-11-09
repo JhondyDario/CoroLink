@@ -1,0 +1,54 @@
+name: 🐞 Report a problem / Reportar un problema
+description: Something isn't working as expected. / Algo no funciona como debería.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve CoroLink! You can write in English or Spanish.
+        ¡Gracias por ayudar a mejorar CoroLink! Puedes escribir en español o en inglés.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / ¿Qué pasó?
+      description: Tell us what went wrong. / Cuéntanos qué salió mal.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Pasos para que pase
+      placeholder: |
+        1. Open the editor / Abrí el editor
+        2. Tapped... / Toqué...
+        3. ...
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect? / ¿Qué esperabas que pasara?
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device / Aparato
+      options:
+        - Phone (Android) / Celular (Android)
+        - Phone (iPhone) / Celular (iPhone)
+        - Computer / Computadora
+        - Tablet
+    validations:
+      required: true
+  - type: dropdown
+    id: page
+    attributes:
+      label: Where? / ¿Dónde?
+      options:
+        - Home page / Portada
+        - Editor
+        - Guest manager / Gestor de invitados
+        - The invitation guests open / La invitación que abren los invitados
+        - Other / Otro
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else / Capturas o algo más
+      description: You can paste images here. Please don't include private guest data. / Puedes pegar imágenes aquí. No incluyas datos privados de tus invitados.

@@ -29,7 +29,7 @@ draft.msg ||= DEFAULT_INVITE;
 draft.remind ||= DEFAULT_REMIND;
 guests.forEach((g) => { g.status ??= ''; g.group ??= ''; });
 
-$('#ev-name').textContent = [EVENT_TYPES[draft.inv.ev?.type], draft.inv.ev?.names].filter(Boolean).join(' · ');
+$('#ev-name').textContent = [tr(EVENT_TYPES[draft.inv.ev?.type] || ''), draft.inv.ev?.names].filter(Boolean).join(' · ');
 $('#back-editor').href = `crear.html?id=${draft.id}`;
 
 const save = debounce(() => {

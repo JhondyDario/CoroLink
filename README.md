@@ -1,94 +1,80 @@
+<div align="center">
+
 # 💌 CoroLink
 
-Invitaciones digitales **gratis**, sin registro y sin servidor, con gestor de invitados y sala virtual. Funciona en celular y en PC.
+### Beautiful digital invitations. 100% free. Open source.
 
-## Qué trae
+**The free, open-source alternative to paid invitation apps like Invitio and others.**
+Create an invitation, send it on WhatsApp and see who's coming, all from your phone or computer.
 
-- **33 plantillas para 28 tipos de evento**, en 5 categorías:
-  - **Amor**: boda, aniversario, despedida.
-  - **Familia**: XV, cumpleaños, baby shower, bautizo, graduación, bienvenida, reencuentro, cena familiar.
-  - **Gamer y tech**: torneo / eSports, LAN party, lanzamiento de juego, watch party, rol / juegos de mesa.
-  - **Fiestas**: fiesta, Halloween, Año Nuevo, junte / BBQ, pool party, open house.
-  - **Profesional**: corporativo, lanzamiento de producto, taller, conferencia, meetup, evento benéfico.
-- **Tus propias plantillas**: guardar, exportar e importar en `.json`.
-- **Editor con vista previa en vivo**: 4 estilos (Clásico, Moderno, Elegante, Neón), 15 decoraciones en SVG, paletas, 19 tipografías y fondos.
-- **Sobre animado** con el nombre del invitado y música (YouTube o `.mp3` por link).
-- **Cuenta regresiva**, **mapa** (Google Maps y Waze), **itinerario**, **vestimenta**, **regalos** y **galería**.
-- **Formulario de confirmación a tu medida**: el nombre siempre; además puedes pedir (no / opcional / obligatorio) teléfono, número de personas, nombres de acompañantes, alergias, canción favorita, mensaje y una pregunta propia.
-- **Agregar al calendario** (Google Calendar y `.ics`), **código QR** e **imagen PNG** de la portada.
+[**✨ Create your invitation →**](https://jhondydario.github.io/CoroLink/)
 
-### Gestor de invitados (`invitados.html`)
+[Leer en español 🇪🇸](README.es.md) · [How it works (technical)](docs/TECHNICAL.md) · [Report a problem](https://github.com/JhondyDario/CoroLink/issues/new?template=bug_report.yml) · [Suggest an idea](https://github.com/JhondyDario/CoroLink/issues/new?template=feature_request.yml)
 
-- **Lista**: agregar uno a uno o pegando una lista, grupos, búsqueda y filtros, envío por WhatsApp con mensaje editable, recordatorios a pendientes y CSV con todas las respuestas.
-- **Confirmaciones**: cada respuesta de WhatsApp trae un código (`CL|id|si|3`). Pegas los mensajes (o subes el chat exportado) y se marcan solos. Quien confirmó con el link general se reconoce por su nombre.
-- **Sala virtual**: plano del salón con mesas redondas y largas, zonas (pista, tarima), arrastrar con el dedo o el mouse, y **sentar automáticamente** manteniendo juntos a los del mismo grupo. Cada invitado ve su mesa en la invitación.
-- **Check-in**: el día del evento marcas quién llega; el plano se va llenando en vivo y la pantalla de bienvenida dice a qué mesa va cada quien (modo pantalla completa para una tablet en la entrada).
-- **Límites**: máximo 100 personas por evento (suma de pases) y mínimo 1 invitado para enviar. Se cambian en `MAX_PEOPLE` y `MIN_GUESTS` dentro de `js/templates.js`.
+![CoroLink home page](docs/screenshots/home.png)
 
-## Cómo funciona por dentro
+</div>
 
-No hay base de datos. La invitación completa se convierte a JSON, se comprime con `deflate-raw` (API `CompressionStream` del navegador) y se guarda en el *fragmento* del link:
+## Why CoroLink?
 
-```
-https://tu-usuario.github.io/corolink/i.html#d=<invitación comprimida>&to=Familia%20Pérez&p=4
-```
+Most invitation apps charge you per event, lock features behind a paywall, or stop working when too many guests open your link. **CoroLink is free forever:** no account, no ads, no "premium" plan, no limits on how many people open your invitation.
 
-El fragmento (`#...`) nunca se envía a ningún servidor, así que el hosting es estático y gratis, y los datos de tus invitados son privados. Un link normal pesa menos de 1 KB. Las fotos subidas se comprimen y van dentro del link (lo hacen más largo); por eso también se pueden usar links de imágenes.
+## What you can do
 
-Los borradores, invitados y plantillas propias se guardan en el `localStorage` del navegador. Para pasarlos a otro dispositivo usa **Enviar → Exportar invitación**.
+**🎨 Make it look amazing**
+- 33 ready-to-use templates for weddings, quinceañeras, birthdays, baby showers, graduations, **gaming tournaments, LAN parties**, Halloween, New Year's, BBQs, conferences and more
+- Change colors, fonts and decorations, or tap any part of the preview to edit it
+- Free photos and music built in (Creative Commons), or upload your own
+- Add your Spotify playlist
+- Save your favorite templates, turn your own invitations into templates, and duplicate past events
 
-## Estructura
+**💌 Send it in seconds**
+- Every guest gets a personal link with their name, number of seats and table
+- Send on WhatsApp with one tap, download a QR code to print, or share the cover as an image
+- An animated envelope with their name opens the invitation
 
-```
-index.html        Portada, plantillas y "Mis invitaciones"
-crear.html        Editor
-i.html            Visor de la invitación (lo que abre el invitado)
-css/app.css       Estilos del sitio y del editor
-css/invite.css    Estilos de la invitación
-js/codec.js       Comprimir y descomprimir la invitación en el link
-js/templates.js   Plantillas, fuentes, decoraciones SVG y limpieza del tema
-js/render.js      Arma el HTML de la invitación
-js/viewer.js      Lógica del visor: sobre, cuenta regresiva, RSVP, música
-js/editor.js      Lógica del editor
-js/gestor.js      Gestor de invitados: lista, confirmaciones, sala y check-in
-invitados.html    Página del gestor
-js/store.js       Guardado local
-js/vendor/        qrcode-generator y html-to-image (MIT)
-```
+**✅ Know who's coming**
+- Guests confirm with one tap and the answer arrives in your WhatsApp
+- You decide what they fill in: plus-ones, allergies, a song request, or your own question
+- The guest manager reads the confirmations for you and keeps the count
 
-Sin build ni dependencias: HTML, CSS y JavaScript con módulos ES.
+**🪑 Plan the big day**
+- A virtual floor plan: add tables, drag them around, and auto-seat guests by group
+- Event-day check-in: mark arrivals and watch the room fill up live, with a "Welcome, table 5!" screen for the entrance
 
-## Correrlo en tu PC
+**🌍 Works for everyone**
+- Spanish and English (each invitation can be in either language)
+- Dark mode
+- Works on phones, tablets and computers. Nothing to install
 
-```bash
-python3 -m http.server 8080
-```
+![Example invitations](docs/screenshots/invites.png)
 
-Y abre http://localhost:8080. Hace falta un servidor (aunque sea ese) porque los módulos ES no cargan desde `file://`.
+## How is it free?
 
-## Publicarlo gratis en GitHub Pages
+Your invitation **lives inside the link itself**. There's no server storing it and no database to pay for, so it costs nothing to run and your guest list stays private on your device.
 
-1. Sube el repo a GitHub.
-2. En **Settings → Pages**, en *Source* escoge **GitHub Actions**.
-3. Cada `push` a `main` lo publica solo (ver `.github/workflows/pages.yml`).
+| | |
+|---|---|
+| ![Editor](docs/screenshots/editor.png) | ![Check-in](docs/screenshots/checkin.png) |
+| **Editor:** tap any part of the invitation to edit it | **Check-in:** see who's arrived and where they sit |
 
-## Crear una plantilla nueva en el código
+## Good to know
 
-Agrega una entrada en `TEMPLATES` dentro de `js/templates.js`:
+- Your drafts are saved in the browser you use. To move them to another device, use **Send → Export invitation**.
+- Up to 100 guests per event.
+- To receive confirmations automatically you paste the WhatsApp messages into the guest manager (it reads them for you).
 
-```js
-T('mi-plantilla', 'Nombre', 'boda',
-  { layout: 'elegante', deco: 'floral', bg: '#ffffff', card: '#ffffff', text: '#333333',
-    primary: '#e8b4b8', accent: '#9aab89', fontTitle: 'Great Vibes', fontBody: 'Lora', pattern: 'paper' },
-  { pre: 'Nos casamos', names: 'Ana & Luis', msg: 'Texto de ejemplo' }),
-```
+## Help make it better
 
-Para una decoración nueva, agrega una función `corner(colores)` en `DECOS` que devuelva SVG para una esquina de 170×170.
+CoroLink is built in the open, and every idea counts.
 
-## Seguridad
+- ⭐ **[Star the project](https://github.com/JhondyDario/CoroLink)** so more people find it
+- 🐞 **[Report a problem](https://github.com/JhondyDario/CoroLink/issues/new?template=bug_report.yml)**
+- 💡 **[Suggest an idea](https://github.com/JhondyDario/CoroLink/issues/new?template=feature_request.yml)**
+- 🛠️ **Contribute code or templates:** see [CONTRIBUTING.md](CONTRIBUTING.md)
 
-Todo lo que viene del link se trata como no confiable: el texto se escapa, los colores, fuentes y estilos pasan por `sanitizeTheme`, y sólo se aceptan URLs `https://` y imágenes `data:image/...`.
+## License
 
-## Licencia
+[MIT](LICENSE). Free to use, change and share.
 
-MIT
+Made in the Dominican Republic 🇩🇴

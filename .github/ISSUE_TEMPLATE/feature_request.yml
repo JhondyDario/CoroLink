@@ -1,0 +1,31 @@
+name: 💡 Suggest an idea / Sugerir una idea
+description: Propose a new feature, template or improvement. / Propón una función, plantilla o mejora.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We love ideas! You can write in English or Spanish.
+        ¡Nos encantan las ideas! Puedes escribir en español o en inglés.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea / Tu idea
+      description: What would you like CoroLink to do? / ¿Qué te gustaría que hiciera CoroLink?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it help? / ¿Por qué ayudaría?
+      description: What are you trying to do for your event? / ¿Qué quieres lograr para tu evento?
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type / Tipo
+      options:
+        - New feature / Función nueva
+        - New template or event type / Plantilla o tipo de evento nuevo
+        - Design improvement / Mejora de diseño
+        - Translation / Traducción
+        - Other / Otro

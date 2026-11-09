@@ -1,6 +1,7 @@
 // Convierte los datos de una invitación en HTML. Lo usan el visor y la vista previa.
 import { cornerSVG, dividerSVG, fontsHref, EVENT_TYPES, sanitizeTheme, FONT_SCALE, RSVP_FIELDS, defaultRsvpFields, sectionOrder } from './templates.js';
 import { ti, fmtDateL, fmtTimeL } from './i18n.js';
+import { spotifyEmbed, creditLink } from './media.js';
 
 export const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -85,11 +86,12 @@ const icon = {
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   shirt: '<svg viewBox="0 0 24 24"><path d="M8 3l4 3 4-3 5 4-3 4-2-1v11H8V10l-2 1-3-4z"/></svg>',
   gift: '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="1"/><path d="M3 13h18M12 9v12M12 9C9 9 7 4 10 4s2 5 2 5 0-5 3-5 1 5-3 5"/></svg>',
+  music: '<svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>',
 };
 
 // Qué grupo del editor corresponde a cada parte (para editar tocando la vista previa)
-const EDIT_GROUP = { countdown: 'evento', places: 'lugares', itin: 'itinerario', dress: 'vestimenta', gifts: 'regalos', gallery: 'galeria', rsvp: 'rsvp' };
+const EDIT_GROUP = { playlist: 'playlist', countdown: 'evento', places: 'lugares', itin: 'itinerario', dress: 'vestimenta', gifts: 'regalos', gallery: 'galeria', rsvp: 'rsvp' };
 
 function section(id, title, body, ic) {
   return `<section class="sec reveal" id="sec-${id}" data-edit="${EDIT_GROUP[id] || 'evento'}">
@@ -107,7 +109,7 @@ export function renderInvitation(inv, guest = {}) {
   const dt = parseDate(ev.date, ev.time);
   const corner = cornerSVG(t.deco, t);
   const div = `<div class="divider">${dividerSVG(t)}</div>`;
-  const cover = safeUrl(inv.cover, { image: true });
+  const cover = show.cover === false ? '' : safeUrl(inv.cover, { image: true });
   const parts = [];
 
   // ---------- Portada (siempre primero) ----------
@@ -185,6 +187,11 @@ export function renderInvitation(inv, guest = {}) {
     if (imgs.length) S.gallery = section('gallery', tr('Galería'), `<div class="gallery">${imgs.map((u) => `<img src="${esc(u)}" alt="" loading="lazy">`).join('')}</div>`, 'heart');
   }
 
+  if (show.playlist && inv.spotify) {
+    const sp = spotifyEmbed(inv.spotify);
+    if (sp) S.playlist = section('playlist', tr('Nuestra playlist'), `<iframe class="spotify" src="${esc(sp.src)}" height="${sp.height}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Spotify"></iframe>`, 'music');
+  }
+
   if (show.calendar && dt) {
     S.calendar = `<section class="sec reveal center" id="sec-calendar" data-edit="evento"><div class="btn-row">
       <a class="btn" id="gcal" target="_blank" rel="noopener">${tr('Agregar a Google Calendar')}</a>
@@ -203,7 +210,14 @@ export function renderInvitation(inv, guest = {}) {
 
   for (const k of sectionOrder(inv)) if (S[k]) parts.push(S[k]);
 
-  parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p><p class="made">${tr('Hecho con')} <a href="./" target="_blank">CoroLink</a> · ${tr('gratis')}</p></footer>`);
+  // Créditos de fotos y música libres (las licencias Creative Commons lo piden)
+  const usedMedia = [cover, ...(show.gallery ? inv.gallery || [] : []), inv.music].filter(Boolean);
+  const seen = new Set();
+  const credits = usedMedia.map((u) => inv.credits?.[u]).filter((c) => c && c.id && !seen.has(c.id) && seen.add(c.id));
+  const creditsHtml = credits.length
+    ? `<p class="credits">${credits.map((c) => `${c.kind === 'audio' ? '♪' : '📷'} <a href="${esc(creditLink(c))}" target="_blank" rel="noopener">${esc(c.title || c.by)}${c.title ? ' · ' + esc(c.by) : ''}</a> (${esc(c.lic)})`).join(' · ')}</p>`
+    : '';
+  parts.push(`<footer class="foot">${div}<p class="names small">${esc(ev.names)}</p>${creditsHtml}<p class="made">${tr('Hecho con')} <a href="./" target="_blank">CoroLink</a> · ${tr('gratis')}</p></footer>`);
 
   return `<div class="inv layout-${esc(t.layout)} pattern-${esc(t.pattern || 'none')}">${parts.join('')}</div>`;
 }

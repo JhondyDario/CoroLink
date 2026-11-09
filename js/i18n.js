@@ -179,7 +179,7 @@ export const EN = {
 
   // Editor: secciones
   'Arrastra para ordenar las secciones. Prende o apaga lo que aparece en la invitación.': 'Drag to reorder sections. Turn on or off what shows in the invitation.',
-  'Mensaje de bienvenida': 'Welcome message', 'Lugares y mapa': 'Venues and map', 'Galería de fotos': 'Photo gallery', 'Confirmación de asistencia': 'RSVP',
+  'Mensaje de bienvenida': 'Welcome message', 'Playlist de Spotify ': 'Spotify playlist', 'Lugares y mapa': 'Venues and map', 'Galería de fotos': 'Photo gallery', 'Confirmación de asistencia': 'RSVP',
   'Mostrar su mesa al invitado': 'Show guests their table', 'Arrastrar para mover': 'Drag to move', 'La portada siempre va primero.': 'The cover always comes first.',
 
   // Editor: invitados y enviar
@@ -252,6 +252,26 @@ export const EN = {
   '¿Eliminar {name}? Sus invitados quedan sin mesa.': 'Delete {name}? Its guests will be left without a table.', 'Copia el link:': 'Copy the link:',
   'Mesa {n}': 'Table {n}', 'Pista': 'Dance floor', 'por asignar': 'to be assigned', '{n} libres': '{n} free', 'Importada': 'Imported',
   'Quitar uno': 'Remove one', 'Llegó uno': 'One arrived',
+
+  // Imágenes, música y Spotify
+  'Foto de portada': 'Cover photo', '🔍 Buscar imagen': '🔍 Search image', '📤 Subir la mía': '📤 Upload mine', 'Pegar un link de imagen': 'Paste an image link',
+  'Las fotos del buscador son libres (Creative Commons) y el crédito al autor sale solo al pie de la invitación. Si subes la tuya, la comprimimos y va dentro del link (lo hace más largo).': 'Photos from the search are free (Creative Commons) and the author credit is added automatically at the bottom of the invitation. If you upload your own, we compress it and store it inside the link (which makes it longer).',
+  '🔍 Buscar imágenes': '🔍 Search images', '📤 Subir mías': '📤 Upload mine', 'Música de fondo': 'Background music', 'Suena cuando el invitado abre el sobre. Es opcional.': 'Plays when the guest opens the envelope. Optional.',
+  '🔍 Buscar música libre': '🔍 Search free music', 'Usar un link de YouTube o .mp3': 'Use a YouTube or .mp3 link',
+  'La música del buscador es libre y legal (Creative Commons). Spotify no permite música de fondo escondida: para eso usa la sección': 'Music from the search is free and legal (Creative Commons). Spotify doesn\'t allow hidden background music: for that, use the',
+  'Playlist de Spotify': 'Spotify playlist', 'Pega el link de una playlist, álbum o canción de Spotify (Compartir › Copiar enlace). Aparece el reproductor de Spotify dentro de la invitación.': 'Paste a link to a Spotify playlist, album or song (Share › Copy link). The Spotify player appears inside the invitation.',
+  'Link de Spotify': 'Spotify link', 'Nuestra playlist': 'Our playlist', 'Foto subida': 'Uploaded photo', 'Imagen por link': 'Image from link', 'Sin foto de portada': 'No cover photo',
+  'Escuchar': 'Listen', 'Canción por link': 'Song from link', 'Sin música de fondo': 'No background music', 'No se pudo reproducir': 'Couldn\'t play it',
+  'Buscando una imagen para tu evento…': 'Finding an image for your event…', 'Listo. Cámbiala cuando quieras con "Buscar imagen".': 'Done. Change it anytime with "Search image".',
+  'No pude buscar imágenes ahora. Súbelas o búscalas tú mismo.': 'Couldn\'t search images right now. Upload them or search yourself.',
+  'Buscar música libre': 'Search free music', 'Buscar imágenes': 'Search images', 'Buscar imágenes para la galería': 'Search gallery images', 'Buscar imagen de portada': 'Search cover image',
+  'Ej. piano, guitarra, romántica…': 'e.g. piano, guitar, romantic…', 'Ej. flores, playa, fiesta…': 'e.g. flowers, beach, party…', 'Buscando…': 'Searching…',
+  'No encontramos nada. Prueba otra palabra (en inglés suele haber más).': 'Nothing found. Try another word.',
+  'Muchas búsquedas seguidas. Espera un minuto y vuelve a intentar.': 'Too many searches in a row. Wait a minute and try again.',
+  'No se pudo conectar con el buscador. Revisa tu internet.': 'Couldn\'t reach the search service. Check your connection.',
+  'Puesta': 'Selected', 'Usar': 'Use', 'Música de fondo lista 🎵': 'Background music set 🎵', 'Foto de portada lista': 'Cover photo set', 'Máximo 12 fotos en la galería': 'Up to 12 photos in the gallery',
+  '✓ Link de Spotify válido. Ya aparece en la invitación.': '✓ Valid Spotify link. It now shows in the invitation.', 'Ese link no parece de Spotify. Cópialo desde Compartir › Copiar enlace.': 'That doesn\'t look like a Spotify link. Copy it from Share › Copy link.',
+  'Más resultados': 'More results', 'Fuente:': 'Source:', '· contenido Creative Commons': '· Creative Commons content', 'Playlist': 'Playlist',
 
   // Invitación (lo que ve el invitado)
   'Querido(a)': 'Dear', 'Faltan': 'Countdown', 'Días': 'Days', 'Horas': 'Hours', 'Min': 'Min', 'Seg': 'Sec', '¡Llegó el día!': 'The day is here!',

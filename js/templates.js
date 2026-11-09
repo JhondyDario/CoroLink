@@ -457,7 +457,7 @@ export const RSVP_FIELDS = {
 export const defaultRsvpFields = () => ({ phone: 'off', count: 'req', companions: 'off', diet: 'off', song: 'off', msg: 'opt', custom: 'off', customQ: '' });
 
 // Orden por defecto de las secciones (la portada siempre va primero)
-export const SECTION_ORDER = ['msg', 'countdown', 'places', 'itin', 'dress', 'gifts', 'gallery', 'calendar', 'rsvp'];
+export const SECTION_ORDER = ['msg', 'countdown', 'places', 'itin', 'dress', 'gifts', 'gallery', 'playlist', 'calendar', 'rsvp'];
 export function sectionOrder(inv) {
   const o = (inv.order || []).filter((k) => SECTION_ORDER.includes(k));
   return [...new Set([...o, ...SECTION_ORDER])];
@@ -492,9 +492,11 @@ export function newInvitation(tpl = TEMPLATES[0], lang = 'es') {
     gifts: { note: tr('Tu presencia es nuestro mejor regalo, pero si deseas tener un detalle con nosotros:'), items: [] },
     gallery: [],
     music: '',
+    spotify: '',
+    credits: {},
     rsvp: { phone: '', deadline: inDays(45), note: '', fields: defaultRsvpFields() },
     order: [...SECTION_ORDER],
-    show: { msg: true, countdown: true, places: true, itin: true, dress: true, gifts: false, gallery: false, rsvp: true, calendar: true, table: true },
+    show: { msg: true, countdown: true, places: true, itin: true, dress: true, gifts: false, gallery: false, playlist: false, rsvp: true, calendar: true, table: true },
   };
 }
 

@@ -4,6 +4,7 @@ import { esc, safeUrl, waPhone } from './render.js';
 import { tplCard, filterChips, filterTemplates } from './ui.js';
 import { t as tr, lang, startI18n } from './i18n.js';
 import { mountChrome } from './chrome.js';
+import { searchImages, searchAudio, spotifyEmbed, EVENT_QUERY, EVENT_MUSIC, creditLink } from './media.js';
 import { getDraft, saveDraft, updateDraft, uid, listMyTemplates, saveMyTemplate, deleteMyTemplate, listFavs, toggleFav, duplicateDraft, templateFromInvitation } from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -55,6 +56,7 @@ function set(path, val) {
 // ---------- Guardado ----------
 const saveState = $('#save-state');
 const persist = debounce(() => {
+  pruneCredits();
   const ok = !!updateDraft(draft.id, (d) => { d.inv = inv; d.msg = draft.msg; });
   saveState.textContent = ok ? 'Guardado' : 'No se pudo guardar (¿fotos muy pesadas?)';
   saveState.classList.toggle('err', !ok);
@@ -228,6 +230,7 @@ function fillForm() {
   renderToggles();
   renderRsvpFields();
   fillCover();
+  renderSpotifyStatus();
 }
 document.addEventListener('input', (e) => {
   const el = e.target.closest('[data-bind]');
@@ -315,11 +318,13 @@ $('#cover-file').addEventListener('change', async (e) => {
   e.target.value = '';
   if (!f) return;
   inv.cover = await compressImage(f, 720);
+  inv.show.cover = true;
   fillCover();
   changed();
   toast('Foto agregada');
 });
 $('#cover-clear').addEventListener('click', () => { inv.cover = ''; fillCover(); changed(); });
+$('#music-clear').addEventListener('click', () => { inv.music = ''; stopPreview(); renderMediaCurrent(); changed(); });
 
 function renderGallery() {
   $('#gallery-list').innerHTML = (inv.gallery || []).map((u, i) => `<div class="thumb"><img src="${esc(safeUrl(u, { image: true }))}" alt=""><button type="button" data-g="${i}" aria-label="Quitar">×</button></div>`).join('');
@@ -353,13 +358,17 @@ coverInput.addEventListener('input', () => {
   const v = coverInput.value.trim();
   if (v === '(foto subida)') return;
   inv.cover = safeUrl(v) ? v : '';
+  if (inv.cover) inv.show.cover = true;
   changed();
 });
-function fillCover() { coverInput.value = inv.cover?.startsWith('data:') ? '(foto subida)' : inv.cover || ''; }
+function fillCover() {
+  coverInput.value = inv.cover?.startsWith('data:') ? '' : inv.cover || '';
+  renderMediaCurrent();
+}
 
 // ---------- Secciones ----------
 // Lista ordenable: se arrastra con el mouse o el dedo (o con ↑ ↓ desde el teclado)
-const SECTIONS = { msg: 'Mensaje de bienvenida', countdown: 'Cuenta regresiva', places: 'Lugares y mapa', itin: 'Itinerario', dress: 'Vestimenta', gifts: 'Regalos', gallery: 'Galería de fotos', calendar: 'Agregar al calendario', rsvp: 'Confirmación de asistencia' };
+const SECTIONS = { msg: 'Mensaje de bienvenida', countdown: 'Cuenta regresiva', places: 'Lugares y mapa', itin: 'Itinerario', dress: 'Vestimenta', gifts: 'Regalos', gallery: 'Galería de fotos', playlist: 'Playlist de Spotify', calendar: 'Agregar al calendario', rsvp: 'Confirmación de asistencia' };
 const isOn = (k) => (k === 'msg' ? inv.show.msg !== false : !!inv.show[k]);
 function renderToggles() {
   inv.order = sectionOrder(inv);
@@ -370,6 +379,7 @@ function renderToggles() {
       <span class="sort-btns"><button type="button" data-mv="-1" aria-label="${tr('Subir')}">↑</button><button type="button" data-mv="1" aria-label="${tr('Bajar')}">↓</button></span>
     </li>`).join('')}</ol>
     <p class="hint">${tr('La portada siempre va primero.')}</p>
+    <label class="switch row"><input type="checkbox" data-s="cover" ${inv.show.cover !== false && inv.cover ? 'checked' : ''}><span></span>${tr('Foto de portada')}</label>
     <label class="switch row"><input type="checkbox" data-s="table" ${inv.show.table !== false ? 'checked' : ''}><span></span>${tr('Mostrar su mesa al invitado')}</label>`;
 }
 function saveOrder() {
@@ -380,6 +390,7 @@ $('#toggles').addEventListener('change', (e) => {
   const k = e.target.dataset.s;
   if (!k) return;
   inv.show[k] = e.target.checked;
+  if (e.target.checked) autoMedia(k);
   changed();
 });
 $('#toggles').addEventListener('click', (e) => {
@@ -579,8 +590,8 @@ $('#close-preview').addEventListener('click', () => document.body.classList.remo
 // ---------- Panel derecho: editar tocando la vista previa ----------
 // En PC los campos de la sección tocada se mudan a un panel a la derecha.
 // En pantallas más pequeñas te llevamos a esa sección de "Contenido".
-const GROUP_TITLES = { evento: 'Evento', portada: 'Foto de portada', lugares: 'Lugares', itinerario: 'Itinerario', vestimenta: 'Vestimenta', regalos: 'Regalos', galeria: 'Galería', musica: 'Música', rsvp: 'Confirmación (RSVP)' };
-const GROUP_SHOW = { lugares: 'places', itinerario: 'itin', vestimenta: 'dress', regalos: 'gifts', galeria: 'gallery', rsvp: 'rsvp' };
+const GROUP_TITLES = { evento: 'Evento', portada: 'Foto de portada', lugares: 'Lugares', itinerario: 'Itinerario', vestimenta: 'Vestimenta', regalos: 'Regalos', galeria: 'Galería', musica: 'Música de fondo', playlist: 'Playlist de Spotify', rsvp: 'Confirmación (RSVP)' };
+const GROUP_SHOW = { portada: 'cover', playlist: 'playlist', lugares: 'places', itinerario: 'itin', vestimenta: 'dress', regalos: 'gifts', galeria: 'gallery', rsvp: 'rsvp' };
 const wide = matchMedia('(min-width: 1180px)');
 let inspecting = null;
 
@@ -617,7 +628,7 @@ function openInspector(group) {
   $('#insp-title').textContent = GROUP_TITLES[group] || 'Editar';
   const key = GROUP_SHOW[group];
   $('#insp-show-wrap').hidden = !key;
-  if (key) $('#insp-show').checked = !!inv.show[key];
+  if (key) $('#insp-show').checked = key === 'cover' ? inv.show.cover !== false && !!inv.cover : !!inv.show[key];
   $('#inspector').hidden = false;
   document.body.classList.add('inspecting');
   $('#insp-body').scrollTop = 0;
@@ -634,6 +645,7 @@ $('#insp-show').addEventListener('change', (e) => {
   const key = GROUP_SHOW[inspecting?.group];
   if (!key) return;
   inv.show[key] = e.target.checked;
+  if (e.target.checked) autoMedia(key);
   renderToggles();
   changed();
 });
@@ -673,6 +685,204 @@ $('#inv-import').addEventListener('change', async (e) => {
     saveDraft(d);
     location.href = `?id=${d.id}`;
   } catch { toast('Ese archivo no es una invitación de CoroLink'); }
+});
+
+// ---------- Imágenes y música libres + Spotify ----------
+inv.credits ??= {};
+inv.spotify ??= '';
+const creditOf = (u) => inv.credits?.[u];
+
+// Lo que está puesto ahora (portada y música), con su crédito
+function renderMediaCurrent() {
+  const c = safeUrl(inv.cover, { image: true });
+  const cc = creditOf(inv.cover);
+  $('#cover-current').innerHTML = c
+    ? `<div class="mc-img" style="background-image:url('${esc(c)}')"></div><small>${cc ? `📷 ${esc(cc.by)} · ${esc(cc.lic)}` : inv.cover.startsWith('data:') ? tr('Foto subida') : tr('Imagen por link')}</small>`
+    : `<div class="mc-empty">${tr('Sin foto de portada')}</div>`;
+  const m = inv.music, mc = creditOf(m);
+  $('#music-current').innerHTML = m
+    ? `<div class="mc-track"><button class="btn ghost sm" type="button" data-preview="${esc(m)}" aria-label="${tr('Escuchar')}">▶</button><div><b>${esc(mc?.title || (/youtu/.test(m) ? 'YouTube' : tr('Canción por link')))}</b><small>${mc ? `${esc(mc.by)} · ${esc(mc.lic)}` : esc(m.slice(0, 50))}</small></div></div>`
+    : `<div class="mc-empty">${tr('Sin música de fondo')}</div>`;
+  if (document.activeElement !== $('#music-url')) $('#music-url').value = m && !mc ? m : '';
+}
+$('#music-url').addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  inv.music = safeUrl(v) ? v : '';
+  renderMediaCurrent();
+  changed();
+});
+
+// Escuchar antes de escoger
+let previewAudio = null, previewUrl = '';
+function stopPreview() {
+  previewAudio?.pause();
+  previewAudio = null;
+  previewUrl = '';
+  $$('[data-preview], [data-play]').forEach((b) => (b.textContent = '▶'));
+}
+function togglePreview(url, btn) {
+  if (previewUrl === url) return stopPreview();
+  stopPreview();
+  if (/youtu/.test(url)) { window.open(url, '_blank', 'noopener'); return; }
+  previewAudio = new Audio(url);
+  previewUrl = url;
+  previewAudio.play().then(() => (btn.textContent = '❚❚')).catch(() => { stopPreview(); toast('No se pudo reproducir'); });
+  previewAudio.onended = stopPreview;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-preview]');
+  if (b) togglePreview(b.dataset.preview, b);
+});
+
+// Quita créditos de imágenes o canciones que ya no se usan (para que el link no crezca)
+function pruneCredits() {
+  const used = new Set([inv.cover, inv.music, ...(inv.gallery || [])]);
+  for (const u of Object.keys(inv.credits || {})) if (!used.has(u)) delete inv.credits[u];
+}
+
+// Imagen genérica automática al activar la portada o la galería
+async function autoMedia(key) {
+  if (key === 'cover' && inv.cover) return;
+  if (key === 'gallery' && inv.gallery?.length) return;
+  if (key !== 'cover' && key !== 'gallery') return;
+  toast('Buscando una imagen para tu evento…');
+  try {
+    const res = await searchImages(EVENT_QUERY[inv.ev.type] || 'celebration', { wide: key === 'cover' });
+    if (!res.length) throw new Error('vacío');
+    if (key === 'cover') {
+      const r = res.find((x) => !x.w || x.w >= x.h) || res[0];
+      inv.cover = r.url;
+      inv.credits[r.url] = r.credit;
+      fillCover();
+    } else {
+      inv.gallery = res.slice(0, 4).map((r) => { inv.credits[r.url] = r.credit; return r.url; });
+      renderGallery();
+    }
+    renderToggles();
+    changed();
+    toast('Listo. Cámbiala cuando quieras con "Buscar imagen".');
+  } catch {
+    toast('No pude buscar imágenes ahora. Súbelas o búscalas tú mismo.');
+  }
+}
+
+// ---- Ventana del buscador ----
+const dlg = $('#media-dlg');
+const SUGGEST = {
+  img: ['flowers', 'party', 'sunset', 'city lights', 'abstract background', 'beach', 'nature'],
+  music: ['piano', 'acoustic guitar', 'romantic', 'jazz', 'electronic', 'latin', 'orchestra'],
+};
+let picker = { kind: '', q: '', page: 1, items: [] };
+
+function openPicker(kind) {
+  picker = { kind, q: '', page: 1, items: [] };
+  const music = kind === 'music';
+  $('#md-title').textContent = tr(music ? 'Buscar música libre' : kind === 'gallery' ? 'Buscar imágenes para la galería' : 'Buscar imagen de portada');
+  const base = music ? EVENT_MUSIC[inv.ev.type] || 'happy' : EVENT_QUERY[inv.ev.type] || 'celebration';
+  $('#md-q').value = base;
+  $('#md-q').placeholder = tr(music ? 'Ej. piano, guitarra, romántica…' : 'Ej. flores, playa, fiesta…');
+  $('#md-chips').innerHTML = [base, ...SUGGEST[music ? 'music' : 'img']].map((q) => `<button type="button" class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join('');
+  $('#md-done').hidden = kind !== 'gallery';
+  $('#md-results').className = 'md-results ' + (music ? 'tracks' : 'grid');
+  $('#md-results').innerHTML = '';
+  dlg.showModal();
+  runSearch(base);
+}
+$$('[data-pick]').forEach((b) => b.addEventListener('click', () => openPicker(b.dataset.pick)));
+// Los botones de buscar también pueden estar en el panel derecho
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('#insp-body [data-pick]');
+  if (b) openPicker(b.dataset.pick);
+});
+
+async function runSearch(q, more = false) {
+  picker.q = q;
+  picker.page = more ? picker.page + 1 : 1;
+  if (!more) { picker.items = []; $('#md-results').innerHTML = ''; }
+  $('#md-status').textContent = tr('Buscando…');
+  $('#md-more').hidden = true;
+  try {
+    const res = picker.kind === 'music' ? await searchAudio(q, { page: picker.page }) : await searchImages(q, { page: picker.page, wide: picker.kind === 'cover' });
+    picker.items.push(...res);
+    renderPicker();
+    $('#md-status').textContent = picker.items.length ? '' : tr('No encontramos nada. Prueba otra palabra (en inglés suele haber más).');
+    $('#md-more').hidden = res.length < 20;
+  } catch (err) {
+    $('#md-status').textContent = tr(err.message === 'limite' ? 'Muchas búsquedas seguidas. Espera un minuto y vuelve a intentar.' : 'No se pudo conectar con el buscador. Revisa tu internet.');
+  }
+}
+function renderPicker() {
+  if (picker.kind === 'music') {
+    $('#md-results').innerHTML = picker.items.map((r, i) => `<div class="md-track${inv.music === r.url ? ' on' : ''}">
+      <button class="btn ghost sm" type="button" data-play="${i}" aria-label="${tr('Escuchar')}">${previewUrl === r.url ? '❚❚' : '▶'}</button>
+      <div class="md-tinfo"><b>${esc(r.title)}</b><small>${esc(r.by)}${r.secs ? ` · ${Math.floor(r.secs / 60)}:${String(r.secs % 60).padStart(2, '0')}` : ''} · ${esc(r.credit.lic)}</small></div>
+      <button class="btn sm" type="button" data-use="${i}">${tr(inv.music === r.url ? 'Puesta' : 'Usar')}</button>
+    </div>`).join('');
+    return;
+  }
+  $('#md-results').innerHTML = picker.items.map((r, i) => {
+    const on = picker.kind === 'cover' ? inv.cover === r.url : inv.gallery?.includes(r.url);
+    return `<button type="button" class="md-img${on ? ' on' : ''}" data-i="${i}" aria-pressed="${on}" title="${esc(r.title)} · ${esc(r.credit.by)} (${esc(r.credit.lic)})">
+      <img src="${esc(r.thumb)}" alt="${esc(r.title)}" loading="lazy"><span class="md-by">${esc(r.credit.by)}</span>${on ? '<span class="md-check">✓</span>' : ''}</button>`;
+  }).join('');
+}
+$('#md-search').addEventListener('submit', (e) => { e.preventDefault(); const q = $('#md-q').value.trim(); if (q) runSearch(q); });
+$('#md-chips').addEventListener('click', (e) => { const b = e.target.closest('[data-q]'); if (b) { $('#md-q').value = b.dataset.q; runSearch(b.dataset.q); } });
+$('#md-more').addEventListener('click', () => runSearch(picker.q, true));
+const closePicker = () => { stopPreview(); dlg.close(); };
+$('#md-close').addEventListener('click', closePicker);
+$('#md-done').addEventListener('click', closePicker);
+dlg.addEventListener('close', stopPreview);
+dlg.addEventListener('click', (e) => { if (e.target === dlg) closePicker(); }); // tocar fuera cierra
+$('#md-results').addEventListener('click', (e) => {
+  const play = e.target.closest('[data-play]');
+  if (play) { togglePreview(picker.items[+play.dataset.play].url, play); return; }
+  const use = e.target.closest('[data-use]');
+  if (use) {
+    const r = picker.items[+use.dataset.use];
+    inv.music = r.url;
+    inv.credits[r.url] = r.credit;
+    renderMediaCurrent();
+    changed();
+    closePicker();
+    toast('Música de fondo lista 🎵');
+    return;
+  }
+  const img = e.target.closest('.md-img');
+  if (!img) return;
+  const r = picker.items[+img.dataset.i];
+  if (picker.kind === 'cover') {
+    inv.cover = r.url;
+    inv.show.cover = true;
+    inv.credits[r.url] = r.credit;
+    fillCover();
+    changed();
+    closePicker();
+    toast('Foto de portada lista');
+  } else {
+    inv.gallery ??= [];
+    const at = inv.gallery.indexOf(r.url);
+    if (at >= 0) inv.gallery.splice(at, 1);
+    else if (inv.gallery.length >= 12) return toast('Máximo 12 fotos en la galería');
+    else { inv.gallery.push(r.url); inv.credits[r.url] = r.credit; inv.show.gallery = true; }
+    renderGallery();
+    renderPicker();
+    changed();
+  }
+});
+
+// Spotify: validar el link y activar la sección
+function renderSpotifyStatus() {
+  const v = inv.spotify?.trim();
+  const sp = spotifyEmbed(v);
+  $('#spotify-status').textContent = !v ? '' : sp ? tr('✓ Link de Spotify válido. Ya aparece en la invitación.') : tr('Ese link no parece de Spotify. Cópialo desde Compartir › Copiar enlace.');
+  $('#spotify-status').classList.toggle('ok', !!sp);
+}
+$('#spotify-url').addEventListener('input', (e) => {
+  inv.spotify = e.target.value.trim();
+  const sp = spotifyEmbed(inv.spotify);
+  if (sp && !inv.show.playlist) { inv.show.playlist = true; renderToggles(); }
+  renderSpotifyStatus();
 });
 
 // ---------- Utilidades ----------

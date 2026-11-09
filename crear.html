@@ -93,12 +93,16 @@
             <label class="f">Frase o cita (opcional)<textarea rows="2" data-bind="ev.quote"></textarea></label>
           </details>
           <details data-group="portada"><summary>Foto de portada</summary>
-            <p class="hint">Pega el link de una imagen o súbela. Si la subes, la comprimimos y va dentro del link (lo hace más largo).</p>
-            <label class="f">Link de la imagen<input placeholder="https://…" id="cover-url"></label>
+            <div class="media-current" id="cover-current"></div>
             <div class="btn-row">
-              <label class="btn ghost sm file-btn">Subir foto<input type="file" accept="image/*" id="cover-file" hidden></label>
+              <button class="btn sm" type="button" data-pick="cover">🔍 Buscar imagen</button>
+              <label class="btn ghost sm file-btn">📤 Subir la mía<input type="file" accept="image/*" id="cover-file" hidden></label>
               <button class="btn ghost sm" id="cover-clear" type="button">Quitar</button>
             </div>
+            <details class="sub"><summary>Pegar un link de imagen</summary>
+              <label class="f">Link de la imagen<input placeholder="https://…" id="cover-url"></label>
+            </details>
+            <p class="hint">Las fotos del buscador son libres (Creative Commons) y el crédito al autor sale solo al pie de la invitación. Si subes la tuya, la comprimimos y va dentro del link (lo hace más largo).</p>
           </details>
           <details data-group="lugares"><summary>Lugares</summary>
             <div class="list" id="places-list"></div>
@@ -119,12 +123,30 @@
           </details>
           <details data-group="galeria"><summary>Galería</summary>
             <div class="thumbs" id="gallery-list"></div>
-            <div class="row-add"><input id="gallery-url" placeholder="Link de imagen https://…"><button class="btn ghost sm" id="gallery-add" type="button">Agregar</button></div>
-            <label class="btn ghost sm file-btn">Subir fotos<input type="file" accept="image/*" multiple id="gallery-file" hidden></label>
+            <div class="btn-row">
+              <button class="btn sm" type="button" data-pick="gallery">🔍 Buscar imágenes</button>
+              <label class="btn ghost sm file-btn">📤 Subir mías<input type="file" accept="image/*" multiple id="gallery-file" hidden></label>
+            </div>
+            <details class="sub"><summary>Pegar un link de imagen</summary>
+              <div class="row-add"><input id="gallery-url" placeholder="Link de imagen https://…"><button class="btn ghost sm" id="gallery-add" type="button">Agregar</button></div>
+            </details>
           </details>
-          <details data-group="musica"><summary>Música</summary>
-            <label class="f">Link de YouTube o de un .mp3<input data-bind="music" placeholder="https://youtu.be/…"></label>
-            <p class="hint">Empieza a sonar cuando el invitado abre el sobre.</p>
+          <details data-group="musica"><summary>Música de fondo</summary>
+            <p class="hint">Suena cuando el invitado abre el sobre. Es opcional.</p>
+            <div class="media-current" id="music-current"></div>
+            <div class="btn-row">
+              <button class="btn sm" type="button" data-pick="music">🔍 Buscar música libre</button>
+              <button class="btn ghost sm" id="music-clear" type="button">Quitar</button>
+            </div>
+            <details class="sub"><summary>Usar un link de YouTube o .mp3</summary>
+              <label class="f">Link de YouTube o de un .mp3<input id="music-url" placeholder="https://youtu.be/…"></label>
+            </details>
+            <p class="hint">La música del buscador es libre y legal (Creative Commons). Spotify no permite música de fondo escondida: para eso usa la sección <b>Playlist de Spotify</b>.</p>
+          </details>
+          <details data-group="playlist"><summary>Playlist de Spotify</summary>
+            <p class="hint">Pega el link de una playlist, álbum o canción de Spotify (Compartir › Copiar enlace). Aparece el reproductor de Spotify dentro de la invitación.</p>
+            <label class="f">Link de Spotify<input data-bind="spotify" id="spotify-url" placeholder="https://open.spotify.com/playlist/…"></label>
+            <p class="hint" id="spotify-status"></p>
           </details>
           <details data-group="rsvp"><summary>Confirmación (RSVP)</summary>
             <label class="f">Tu WhatsApp (ahí te llegan las confirmaciones)<input type="tel" data-bind="rsvp.phone" placeholder="809 555 1234" inputmode="tel"></label>
@@ -216,6 +238,25 @@
       </div>
     </aside>
   </div>
+
+  <dialog class="media-dlg" id="media-dlg" aria-labelledby="md-title">
+    <div class="md-head">
+      <h2 id="md-title">Buscar imágenes</h2>
+      <button class="btn ghost sm" type="button" id="md-close" aria-label="Cerrar">✕</button>
+    </div>
+    <form class="md-search" id="md-search">
+      <input type="search" id="md-q" aria-label="Buscar" autocomplete="off">
+      <button class="btn sm" type="submit">Buscar</button>
+    </form>
+    <div class="chips md-chips" id="md-chips"></div>
+    <p class="hint" id="md-status" role="status"></p>
+    <div class="md-results" id="md-results"></div>
+    <div class="md-foot">
+      <button class="btn ghost sm" type="button" id="md-more">Más resultados</button>
+      <span class="hint">Fuente: <a href="https://openverse.org" target="_blank" rel="noopener">Openverse</a> · contenido Creative Commons</span>
+      <button class="btn sm" type="button" id="md-done" hidden>Listo</button>
+    </div>
+  </dialog>
 
   <button class="fab" id="open-preview" type="button">Vista previa</button>
   <div class="toast" id="toast" role="status"></div>

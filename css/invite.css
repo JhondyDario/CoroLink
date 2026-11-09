@@ -181,3 +181,8 @@ body.preview [data-edit] { cursor: pointer; transition: outline-color .15s; outl
 body.preview [data-edit]:hover { outline-color: rgba(112, 72, 232, .55); }
 body.preview [data-edit].editing { outline: 3px solid #7048e8; outline-offset: 4px; }
 body.preview .hero-card[data-edit] { outline-offset: -4px; }
+
+/* ---------- Spotify y créditos ---------- */
+.spotify { width: 100%; border: 0; border-radius: 12px; display: block; }
+.credits { font-size: .72rem; opacity: .65; margin: 10px auto 0; max-width: 460px; line-height: 1.5; }
+.credits a { text-decoration: underline dotted; }
